@@ -933,7 +933,7 @@ let locationChart = null;
 let serviceChart = null;
 let referralChart = null;
 
-// 월별 차트 생성 (막대 그래프)
+// 월별 차트 생성 (선 그래프)
 function createMonthlyChart(months, data) {
     const ctx = document.getElementById('monthlyChart');
     if (!ctx) return;
@@ -944,42 +944,40 @@ function createMonthlyChart(months, data) {
     
     const labels = [...months].reverse(); // 오래된 순으로
     const revenues = labels.map(month => data[month].totalRevenue);
-    const materialCosts = labels.map(month => data[month].materialCost);
-    const laborCosts = labels.map(month => data[month].laborCost);
     const profits = labels.map(month => data[month].profit);
     
     monthlyChart = new Chart(ctx, {
-        type: 'bar',
+        type: 'line',
         data: {
             labels: labels,
             datasets: [
                 {
                     label: '총 매출',
                     data: revenues,
-                    backgroundColor: 'rgba(102, 126, 234, 0.7)',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
                     borderColor: 'rgba(102, 126, 234, 1)',
-                    borderWidth: 2
-                },
-                {
-                    label: '자재비',
-                    data: materialCosts,
-                    backgroundColor: 'rgba(255, 152, 0, 0.7)',
-                    borderColor: 'rgba(255, 152, 0, 1)',
-                    borderWidth: 2
-                },
-                {
-                    label: '인부 비용',
-                    data: laborCosts,
-                    backgroundColor: 'rgba(233, 30, 99, 0.7)',
-                    borderColor: 'rgba(233, 30, 99, 1)',
-                    borderWidth: 2
+                    borderWidth: 3,
+                    pointRadius: 6,
+                    pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 8,
+                    tension: 0.4,
+                    fill: true
                 },
                 {
                     label: '순이익',
                     data: profits,
-                    backgroundColor: 'rgba(76, 175, 80, 0.7)',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
                     borderColor: 'rgba(76, 175, 80, 1)',
-                    borderWidth: 2
+                    borderWidth: 3,
+                    pointRadius: 6,
+                    pointBackgroundColor: 'rgba(76, 175, 80, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 8,
+                    tension: 0.4,
+                    fill: true
                 }
             ]
         },
@@ -993,14 +991,37 @@ function createMonthlyChart(months, data) {
             plugins: {
                 legend: {
                     display: true,
-                    position: 'top'
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            size: 13,
+                            weight: '500'
+                        }
+                    }
                 },
                 title: {
                     display: true,
-                    text: '월별 매출 및 비용 구성 분석',
-                    font: { size: 16, weight: 'bold' }
+                    text: '월별 매출 및 순이익 추이',
+                    font: { 
+                        size: 16, 
+                        weight: 'bold' 
+                    },
+                    padding: {
+                        bottom: 20
+                    }
                 },
                 tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    bodyFont: {
+                        size: 13
+                    },
                     callbacks: {
                         label: function(context) {
                             return context.dataset.label + ': ₩' + context.parsed.y.toLocaleString();
@@ -1013,11 +1034,28 @@ function createMonthlyChart(months, data) {
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: '금액 (원)'
+                        text: '금액 (원)',
+                        font: {
+                            size: 12,
+                            weight: '600'
+                        }
                     },
                     ticks: {
                         callback: function(value) {
                             return '₩' + (value / 10000).toFixed(0) + '만';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
                         }
                     }
                 }
@@ -1026,7 +1064,7 @@ function createMonthlyChart(months, data) {
     });
 }
 
-// 지역별 차트 생성 (도넛 차트)
+// 지역별 차트 생성 (도넛 차트 - 거래 건수 기준)
 function createLocationChart(locations, data) {
     const ctx = document.getElementById('locationChart');
     if (!ctx) return;
@@ -1053,10 +1091,11 @@ function createLocationChart(locations, data) {
         data: {
             labels: locations,
             datasets: [{
-                label: '매출액',
-                data: locations.map(loc => data[loc].totalRevenue),
+                label: '거래 건수',
+                data: locations.map(loc => data[loc].count),
                 backgroundColor: colors,
-                borderWidth: 2
+                borderWidth: 2,
+                borderColor: '#fff'
             }]
         },
         options: {
@@ -1065,21 +1104,32 @@ function createLocationChart(locations, data) {
             plugins: {
                 legend: {
                     display: true,
-                    position: 'right'
+                    position: 'right',
+                    labels: {
+                        padding: 15,
+                        font: {
+                            size: 12
+                        }
+                    }
                 },
                 title: {
                     display: true,
-                    text: '지역별 매출 분포',
-                    font: { size: 16, weight: 'bold' }
+                    text: '지역별 거래 건수 분포',
+                    font: { size: 16, weight: 'bold' },
+                    padding: {
+                        bottom: 20
+                    }
                 },
                 tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
                     callbacks: {
                         label: function(context) {
                             const label = context.label || '';
                             const value = context.parsed || 0;
                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
                             const percentage = ((value / total) * 100).toFixed(1);
-                            return label + ': ₩' + value.toLocaleString() + ' (' + percentage + '%)';
+                            return label + ': ' + value + '건 (' + percentage + '%)';
                         }
                     }
                 }
@@ -1088,7 +1138,7 @@ function createLocationChart(locations, data) {
     });
 }
 
-// 서비스별 차트 생성 (가로 막대 그래프)
+// 서비스별 차트 생성 (가로 막대 그래프 - 거래 건수 기준)
 function createServiceChart(services, data) {
     const ctx = document.getElementById('serviceChart');
     if (!ctx) return;
@@ -1102,8 +1152,8 @@ function createServiceChart(services, data) {
         data: {
             labels: services,
             datasets: [{
-                label: '매출액',
-                data: services.map(service => data[service].totalRevenue),
+                label: '거래 건수',
+                data: services.map(service => data[service].count),
                 backgroundColor: 'rgba(76, 175, 80, 0.7)',
                 borderColor: 'rgba(76, 175, 80, 1)',
                 borderWidth: 2
@@ -1117,13 +1167,18 @@ function createServiceChart(services, data) {
                 legend: { display: false },
                 title: {
                     display: true,
-                    text: '서비스별 매출',
-                    font: { size: 16, weight: 'bold' }
+                    text: '서비스별 거래 건수',
+                    font: { size: 16, weight: 'bold' },
+                    padding: {
+                        bottom: 20
+                    }
                 },
                 tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
                     callbacks: {
                         label: function(context) {
-                            return '매출: ₩' + context.parsed.x.toLocaleString();
+                            return '거래 건수: ' + context.parsed.x + '건';
                         }
                     }
                 }
@@ -1131,10 +1186,27 @@ function createServiceChart(services, data) {
             scales: {
                 x: {
                     beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return '₩' + (value / 10000).toFixed(0) + '만';
+                    title: {
+                        display: true,
+                        text: '거래 건수',
+                        font: {
+                            size: 12,
+                            weight: '600'
                         }
+                    },
+                    ticks: {
+                        stepSize: 1,
+                        callback: function(value) {
+                            return value + '건';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                y: {
+                    grid: {
+                        display: false
                     }
                 }
             }
@@ -1142,7 +1214,7 @@ function createServiceChart(services, data) {
     });
 }
 
-// 유입 경로별 차트 생성 (파이 차트)
+// 유입 경로별 차트 생성 (파이 차트 - 거래 건수 기준)
 function createReferralChart(referrals, data) {
     const ctx = document.getElementById('referralChart');
     if (!ctx) return;
@@ -1167,10 +1239,11 @@ function createReferralChart(referrals, data) {
         data: {
             labels: referrals,
             datasets: [{
-                label: '매출액',
-                data: referrals.map(ref => data[ref].totalRevenue),
+                label: '거래 건수',
+                data: referrals.map(ref => data[ref].count),
                 backgroundColor: colors,
-                borderWidth: 2
+                borderWidth: 2,
+                borderColor: '#fff'
             }]
         },
         options: {
@@ -1179,21 +1252,32 @@ function createReferralChart(referrals, data) {
             plugins: {
                 legend: {
                     display: true,
-                    position: 'right'
+                    position: 'right',
+                    labels: {
+                        padding: 15,
+                        font: {
+                            size: 12
+                        }
+                    }
                 },
                 title: {
                     display: true,
-                    text: '유입 경로별 매출 분포',
-                    font: { size: 16, weight: 'bold' }
+                    text: '유입 경로별 거래 건수 분포',
+                    font: { size: 16, weight: 'bold' },
+                    padding: {
+                        bottom: 20
+                    }
                 },
                 tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
                     callbacks: {
                         label: function(context) {
                             const label = context.label || '';
                             const value = context.parsed || 0;
                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
                             const percentage = ((value / total) * 100).toFixed(1);
-                            return label + ': ₩' + value.toLocaleString() + ' (' + percentage + '%)';
+                            return label + ': ' + value + '건 (' + percentage + '%)';
                         }
                     }
                 }
@@ -1201,4 +1285,3 @@ function createReferralChart(referrals, data) {
         }
     });
 }
-
