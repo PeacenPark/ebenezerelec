@@ -283,17 +283,48 @@
                     <input type="text" id="searchInput" placeholder="🔍 고객명, 위치, 내용으로 검색...">
                 </div>
 
-                <div class="filter-buttons">
-                    <button class="filter-btn active" data-filter="all">전체</button>
-                    <button class="filter-btn" data-filter="today">오늘</button>
-                    <button class="filter-btn" data-filter="week">이번 주</button>
-                    <button class="filter-btn" data-filter="month">이번 달</button>
+                <div class="filter-container">
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-filter="all">전체</button>
+                        <button class="filter-btn" data-filter="today">오늘</button>
+                        <button class="filter-btn" data-filter="week">이번 주</button>
+                        <button class="filter-btn" data-filter="month">이번 달</button>
+                    </div>
+                    
+                    <div class="month-selector">
+                        <select id="monthFilter">
+                            <option value="">월별 조회</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- 거래 목록 -->
                 <div class="transaction-list" id="transactionList">
                     <div class="loading">데이터를 불러오는 중...</div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 상세 보기 모달 -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content detail-modal-content">
+            <div class="modal-header">
+                <h2>거래 상세 내역</h2>
+                <span class="close-btn" id="closeDetailBtn">&times;</span>
+            </div>
+
+            <div id="detailContent" class="detail-content">
+                <!-- JavaScript로 동적 생성 -->
+            </div>
+
+            <div class="detail-actions">
+                <button class="btn-action btn-edit-action" id="editDetailBtn">
+                    ✏️ 수정
+                </button>
+                <button class="btn-action btn-delete-action" id="deleteDetailBtn">
+                    🗑️ 삭제
+                </button>
             </div>
         </div>
     </div>

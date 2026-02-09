@@ -238,6 +238,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 generateLocationStats(allTransactions);
                 generateServiceStats(allTransactions);
                 generateReferralStats(allTransactions);
+                populateMonthFilter();
             }, (error) => {
                 console.error('데이터 로드 에러:', error);
             });
@@ -264,67 +265,44 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ========================================
-    // 거래 항목 HTML 생성
+    // 거래 항목 HTML 생성 (간단한 카드)
     // ========================================
     function createTransactionHTML(transaction) {
         return `
-            <div class="transaction-item">
+            <div class="transaction-item" data-id="${transaction.id}">
                 <div class="transaction-header">
                     <div class="customer-name">👤 ${transaction.customerName}</div>
                     <div class="transaction-date">📅 ${transaction.date}</div>
                 </div>
-    
-                <div class="transaction-details">
-                    <div class="detail-item">
+
+                <div class="transaction-summary">
+                    <div class="summary-item">
                         <span class="icon">📞</span>
                         ${transaction.phone}
                     </div>
-                    <div class="detail-item">
+                    <div class="summary-item">
                         <span class="icon">📍</span>
-                        ${transaction.location} ${transaction.detailedLocation || ''}
+                        ${transaction.location}
                     </div>
-                    <div class="detail-item">
+                    <div class="summary-item">
                         <span class="icon">🔧</span>
                         ${transaction.serviceType}
                     </div>
-                    <div class="detail-item">
+                    <div class="summary-item">
                         <span class="icon">🔗</span>
-                        ${transaction.referralSource || '미입력'}${transaction.referralDetail ? ' (' + transaction.referralDetail + ')' : ''}
+                        ${transaction.referralSource || '미입력'}
                     </div>
                 </div>
-    
-                <div class="transaction-content">
-                    <strong>작업 내용:</strong><br>
-                    ${transaction.content}
-                    ${transaction.notes ? `<br><br><strong>비고:</strong><br>${transaction.notes}` : ''}
-                </div>
-    
-                <div class="cost-info">
-                    <div class="cost-item">
-                        <div class="cost-label">총 비용</div>
-                        <div class="cost-value">₩${formatNumber(transaction.totalCost)}</div>
+
+                <div class="transaction-amount">
+                    <div>
+                        <span class="amount-label">총 비용</span>
+                        <div class="amount-value">₩${formatNumber(transaction.totalCost)}</div>
                     </div>
-                    <div class="cost-item">
-                        <div class="cost-label">자재비</div>
-                        <div class="cost-value" style="color: #ff9800;">₩${formatNumber(transaction.materialCost)}</div>
+                    <div style="text-align: right;">
+                        <span class="amount-label">순이익</span>
+                        <div class="profit-value">₩${formatNumber(transaction.profit)}</div>
                     </div>
-                    <div class="cost-item">
-                        <div class="cost-label">인부 비용</div>
-                        <div class="cost-value" style="color: #e91e63;">₩${formatNumber(transaction.laborCost)}</div>
-                    </div>
-                    <div class="cost-item">
-                        <div class="cost-label">순이익</div>
-                        <div class="cost-value" style="color: #4CAF50;">₩${formatNumber(transaction.profit)}</div>
-                    </div>
-                </div>
-    
-                <div class="transaction-actions">
-                    <button class="btn-small btn-edit" data-id="${transaction.id}">
-                        ✏️ 수정
-                    </button>
-                    <button class="btn-small btn-delete" data-id="${transaction.id}">
-                        🗑️ 삭제
-                    </button>
                 </div>
             </div>
         `;
@@ -373,6 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('content').value = transaction.content;
         document.getElementById('totalCost').value = transaction.totalCost;
         document.getElementById('materialCost').value = transaction.materialCost;
+        document.getElementById('laborCost').value = transaction.laborCost || 0;
         document.getElementById('notes').value = transaction.notes || '';
         
         // 유입 경로 상세 필드 표시 여부
@@ -417,11 +396,39 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ========================================
+    // 월별 필터 관련
+    // ========================================
+    function populateMonthFilter() {
+        const monthFilter = document.getElementById('monthFilter');
+        if (!monthFilter) return;
+        
+        const months = new Set();
+        allTransactions.forEach(t => {
+            const month = t.date.substring(0, 7); // YYYY-MM
+            months.add(month);
+        });
+        
+        const sortedMonths = Array.from(months).sort().reverse();
+        
+        monthFilter.innerHTML = '<option value="">월별 조회</option>';
+        sortedMonths.forEach(month => {
+            const option = document.createElement('option');
+            option.value = month;
+            option.textContent = month;
+            monthFilter.appendChild(option);
+        });
+    }
+    
+    // ========================================
     // 필터 처리
     // ========================================
     function handleFilter(e) {
         filterButtons.forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
+        
+        // 월별 선택 초기화
+        const monthFilterEl = document.getElementById('monthFilter');
+        if (monthFilterEl) monthFilterEl.value = '';
     
         const filter = e.target.dataset.filter;
         const today = new Date().toISOString().split('T')[0];
@@ -726,6 +733,26 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', handleFilter);
     });
     
+    // 월별 필터
+    const monthFilter = document.getElementById('monthFilter');
+    if (monthFilter) {
+        monthFilter.addEventListener('change', function(e) {
+            const selectedMonth = e.target.value;
+            
+            // 다른 필터 버튼 비활성화
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            
+            if (selectedMonth) {
+                const filtered = allTransactions.filter(t => t.date.startsWith(selectedMonth));
+                displayTransactions(filtered);
+                updateStatistics(filtered);
+            } else {
+                displayTransactions(allTransactions);
+                updateStatistics(allTransactions);
+            }
+        });
+    }
+    
     // 통계 탭 전환
     document.querySelectorAll('.stats-tab').forEach(tab => {
         tab.addEventListener('click', function() {
@@ -740,19 +767,147 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // 거래 목록의 수정/삭제 버튼 이벤트 (이벤트 위임)
+    // 거래 목록의 카드 클릭 이벤트 (이벤트 위임)
     const transactionList = document.getElementById('transactionList');
     if (transactionList) {
         transactionList.addEventListener('click', function(e) {
-            const editBtn = e.target.closest('.btn-edit');
-            const deleteBtn = e.target.closest('.btn-delete');
-            
-            if (editBtn) {
-                const id = editBtn.dataset.id;
-                editTransaction(id);
-            } else if (deleteBtn) {
-                const id = deleteBtn.dataset.id;
-                deleteTransaction(id);
+            const card = e.target.closest('.transaction-item');
+            if (card) {
+                const id = card.dataset.id;
+                openDetailModal(id);
+            }
+        });
+    }
+    
+    // ========================================
+    // 상세 보기 모달 관련
+    // ========================================
+    const detailModal = document.getElementById('detailModal');
+    const closeDetailBtn = document.getElementById('closeDetailBtn');
+    let currentDetailId = null;
+
+    // 상세 모달 열기
+    function openDetailModal(id) {
+        const transaction = allTransactions.find(t => t.id === id);
+        if (!transaction) return;
+        
+        currentDetailId = id;
+        
+        const detailContent = document.getElementById('detailContent');
+        detailContent.innerHTML = `
+            <div class="detail-section">
+                <div class="detail-section-title">고객 정보</div>
+                <div class="detail-grid">
+                    <div class="detail-item-box">
+                        <div class="detail-item-label">고객명</div>
+                        <div class="detail-item-value">${transaction.customerName}</div>
+                    </div>
+                    <div class="detail-item-box">
+                        <div class="detail-item-label">연락처</div>
+                        <div class="detail-item-value">${transaction.phone}</div>
+                    </div>
+                    <div class="detail-item-box">
+                        <div class="detail-item-label">작업일</div>
+                        <div class="detail-item-value">${transaction.date}</div>
+                    </div>
+                    <div class="detail-item-box">
+                        <div class="detail-item-label">유입 경로</div>
+                        <div class="detail-item-value">${transaction.referralSource || '미입력'}${transaction.referralDetail ? ' (' + transaction.referralDetail + ')' : ''}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">작업 정보</div>
+                <div class="detail-grid">
+                    <div class="detail-item-box">
+                        <div class="detail-item-label">위치</div>
+                        <div class="detail-item-value">${transaction.location} ${transaction.detailedLocation || ''}</div>
+                    </div>
+                    <div class="detail-item-box">
+                        <div class="detail-item-label">서비스 유형</div>
+                        <div class="detail-item-value">${transaction.serviceType}</div>
+                    </div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <div class="detail-item-label" style="margin-bottom: 8px;">작업 내용</div>
+                    <div class="detail-full">${transaction.content}</div>
+                </div>
+                ${transaction.notes ? `
+                <div style="margin-top: 15px;">
+                    <div class="detail-item-label" style="margin-bottom: 8px;">비고</div>
+                    <div class="detail-full">${transaction.notes}</div>
+                </div>
+                ` : ''}
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-section-title">비용 정보</div>
+                <div class="detail-cost-grid">
+                    <div class="detail-cost-box">
+                        <div class="detail-cost-label">총 비용</div>
+                        <div class="detail-cost-value">₩${formatNumber(transaction.totalCost)}</div>
+                    </div>
+                    <div class="detail-cost-box">
+                        <div class="detail-cost-label">자재비</div>
+                        <div class="detail-cost-value" style="color: #ff9800;">₩${formatNumber(transaction.materialCost)}</div>
+                    </div>
+                    <div class="detail-cost-box">
+                        <div class="detail-cost-label">인부 비용</div>
+                        <div class="detail-cost-value" style="color: #e91e63;">₩${formatNumber(transaction.laborCost)}</div>
+                    </div>
+                    <div class="detail-cost-box detail-profit">
+                        <div class="detail-cost-label">순이익</div>
+                        <div class="detail-cost-value">₩${formatNumber(transaction.profit)}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        detailModal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    // 상세 모달 닫기
+    function closeDetailModal() {
+        detailModal.classList.remove('show');
+        document.body.style.overflow = 'auto';
+        currentDetailId = null;
+    }
+
+    // 상세 모달 이벤트
+    if (closeDetailBtn) {
+        closeDetailBtn.addEventListener('click', closeDetailModal);
+    }
+
+    window.addEventListener('click', function(event) {
+        if (event.target === detailModal) {
+            closeDetailModal();
+        }
+    });
+
+    // 상세 모달에서 수정 버튼
+    const editDetailBtn = document.getElementById('editDetailBtn');
+    if (editDetailBtn) {
+        editDetailBtn.addEventListener('click', function() {
+            console.log('수정 버튼 클릭, currentDetailId:', currentDetailId);
+            if (currentDetailId) {
+                const idToEdit = currentDetailId;
+                closeDetailModal();
+                editTransaction(idToEdit);
+            }
+        });
+    }
+
+    // 상세 모달에서 삭제 버튼
+    const deleteDetailBtn = document.getElementById('deleteDetailBtn');
+    if (deleteDetailBtn) {
+        deleteDetailBtn.addEventListener('click', function() {
+            console.log('삭제 버튼 클릭, currentDetailId:', currentDetailId);
+            if (currentDetailId) {
+                const idToDelete = currentDetailId;
+                closeDetailModal();
+                deleteTransaction(idToDelete);
             }
         });
     }
@@ -1046,3 +1201,4 @@ function createReferralChart(referrals, data) {
         }
     });
 }
+
