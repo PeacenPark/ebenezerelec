@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>에벤에셀 전기 - 거래 장부</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header">
+            <h1>⚡ 에벤에셀 전기 거래 장부</h1>
+            <p>전기 서비스 거래 내역 관리 시스템</p>
+        </div>
+
+        <!-- 통계 카드 -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <h3>총 거래 건수</h3>
+                <div class="value" id="totalCount">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>총 매출액</h3>
+                <div class="value" id="totalRevenue">₩0</div>
+            </div>
+            <div class="stat-card">
+                <h3>총 자재비</h3>
+                <div class="value" id="totalMaterialCost">₩0</div>
+            </div>
+            <div class="stat-card">
+                <h3>순이익</h3>
+                <div class="value" id="totalProfit">₩0</div>
+            </div>
+        </div>
+
+        <!-- 통계 표 -->
+        <div class="stats-table-section">
+            <div class="stats-header">
+                <h2 class="section-title">📊 월별/지역별 통계</h2>
+                <div class="stats-tabs">
+                    <button class="stats-tab active" data-tab="monthly">월별 통계</button>
+                    <button class="stats-tab" data-tab="location">지역별 통계</button>
+                    <button class="stats-tab" data-tab="service">서비스별 통계</button>
+                    <button class="stats-tab" data-tab="referral">유입 경로별 통계</button>
+                </div>
+            </div>
+
+            <!-- 월별 통계 표 -->
+            <div class="stats-table-container" id="monthlyStats">
+                <div class="chart-container">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>월</th>
+                            <th>거래 건수</th>
+                            <th>총 매출</th>
+                            <th>자재비</th>
+                            <th>인부 비용</th>
+                            <th>순이익</th>
+                            <th>평균 단가</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthlyStatsBody">
+                        <tr>
+                            <td colspan="7" class="loading">데이터를 불러오는 중...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 지역별 통계 표 -->
+            <div class="stats-table-container hidden" id="locationStats">
+                <div class="chart-container">
+                    <canvas id="locationChart"></canvas>
+                </div>
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>지역</th>
+                            <th>거래 건수</th>
+                            <th>총 매출</th>
+                            <th>평균 단가</th>
+                            <th>점유율</th>
+                        </tr>
+                    </thead>
+                    <tbody id="locationStatsBody">
+                        <tr>
+                            <td colspan="5" class="loading">데이터를 불러오는 중...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 서비스별 통계 표 -->
+            <div class="stats-table-container hidden" id="serviceStats">
+                <div class="chart-container">
+                    <canvas id="serviceChart"></canvas>
+                </div>
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>서비스 유형</th>
+                            <th>거래 건수</th>
+                            <th>총 매출</th>
+                            <th>평균 단가</th>
+                            <th>점유율</th>
+                        </tr>
+                    </thead>
+                    <tbody id="serviceStatsBody">
+                        <tr>
+                            <td colspan="5" class="loading">데이터를 불러오는 중...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 유입 경로별 통계 표 -->
+            <div class="stats-table-container hidden" id="referralStats">
+                <div class="chart-container">
+                    <canvas id="referralChart"></canvas>
+                </div>
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>유입 경로</th>
+                            <th>거래 건수</th>
+                            <th>총 매출</th>
+                            <th>평균 단가</th>
+                            <th>점유율</th>
+                        </tr>
+                    </thead>
+                    <tbody id="referralStatsBody">
+                        <tr>
+                            <td colspan="5" class="loading">데이터를 불러오는 중...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 거래 추가 버튼 -->
+        <div class="add-transaction-btn-container">
+            <button class="btn-add-transaction" id="openModalBtn">
+                ➕ 새 거래 등록
+            </button>
+        </div>
+
+        <!-- 거래 입력 모달 -->
+        <div class="modal" id="transactionModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="section-title">📝 거래 내역 입력</h2>
+                    <button class="modal-close" id="closeModalBtn">&times;</button>
+                </div>
+                <form id="transactionForm">
+                    <div class="form-group">
+                        <label for="customerName">고객명 *</label>
+                        <input type="text" id="customerName" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="phone">연락처 *</label>
+                            <input type="tel" id="phone" placeholder="010-0000-0000" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="date">작업일 *</label>
+                            <input type="date" id="date" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location">위치 *</label>
+                        <select id="location" required>
+                            <option value="">지역 선택</option>
+                            <option value="용인시 처인구">용인시 처인구</option>
+                            <option value="용인시 기흥구">용인시 기흥구</option>
+                            <option value="용인시 수지구">용인시 수지구</option>
+                            <option value="수원시 장안구">수원시 장안구</option>
+                            <option value="수원시 권선구">수원시 권선구</option>
+                            <option value="수원시 팔달구">수원시 팔달구</option>
+                            <option value="수원시 영통구">수원시 영통구</option>
+                            <option value="화성시 동탄">화성시 동탄</option>
+                            <option value="화성시 봉담">화성시 봉담</option>
+                            <option value="화성시 향남">화성시 향남</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detailedLocation">상세 주소</label>
+                        <input type="text" id="detailedLocation" placeholder="동/아파트명 등">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="serviceType">서비스 유형 *</label>
+                        <select id="serviceType" required>
+                            <option value="">서비스 선택</option>
+                            <option value="전기안전점검">전기안전점검</option>
+                            <option value="차단기 교체">차단기 교체</option>
+                            <option value="누전 수리">누전 수리</option>
+                            <option value="접지공사">접지공사</option>
+                            <option value="배선 수리">배선 수리</option>
+                            <option value="콘센트/스위치 교체">콘센트/스위치 교체</option>
+                            <option value="조명 설치">조명 설치</option>
+                            <option value="소방전기">소방전기</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="referralSource">유입 경로 *</label>
+                        <select id="referralSource" required>
+                            <option value="">유입 경로 선택</option>
+                            <option value="네이버 블로그">네이버 블로그</option>
+                            <option value="당근">당근</option>
+                            <option value="숨고">숨고</option>
+                            <option value="소개">소개</option>
+                            <option value="네이버 검색">네이버 검색</option>
+                            <option value="재방문">재방문</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="referralDetailGroup" style="display: none;">
+                        <label for="referralDetail">소개자/상세 정보</label>
+                        <input type="text" id="referralDetail" placeholder="소개자 이름 또는 상세 정보 입력">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="content">작업 내용 *</label>
+                        <textarea id="content" required placeholder="작업 내용을 상세히 입력하세요"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="totalCost">총 비용 (원) *</label>
+                            <input type="number" id="totalCost" min="0" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="materialCost">자재비 (원)</label>
+                            <input type="number" id="materialCost" min="0" value="0">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="laborCost">인부 비용 (원)</label>
+                            <input type="number" id="laborCost" min="0" value="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="profit">순이익 (원)</label>
+                            <input type="number" id="profit" min="0" value="0" readonly>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">비고</label>
+                        <textarea id="notes" placeholder="추가 메모사항"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        ✅ 거래 내역 저장
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 메인 콘텐츠 -->
+        <div class="content-wrapper">
+            <!-- 거래 목록 -->
+            <div class="list-section">
+                <h2 class="section-title">📊 거래 내역 목록</h2>
+                
+                <!-- 검색 및 필터 -->
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 고객명, 위치, 내용으로 검색...">
+                </div>
+
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">전체</button>
+                    <button class="filter-btn" data-filter="today">오늘</button>
+                    <button class="filter-btn" data-filter="week">이번 주</button>
+                    <button class="filter-btn" data-filter="month">이번 달</button>
+                </div>
+
+                <!-- 거래 목록 -->
+                <div class="transaction-list" id="transactionList">
+                    <div class="loading">데이터를 불러오는 중...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <script src="app-compat.js"></script>
+</body>
+</html>
