@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // DOM 요소
     const form = document.getElementById('transactionForm');
+    const phoneInput = document.getElementById('phone');
     const totalCostInput = document.getElementById('totalCost');
     const materialCostInput = document.getElementById('materialCost');
     const laborCostInput = document.getElementById('laborCost');
@@ -145,6 +146,43 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dateInput) {
             dateInput.valueAsDate = new Date();
         }
+    }
+    
+    // ========================================
+    // 전화번호 자동 포맷팅
+    // ========================================
+    function formatPhoneNumber(value) {
+        // 숫자만 추출
+        const numbers = value.replace(/[^\d]/g, '');
+        
+        // 길이에 따라 포맷팅
+        if (numbers.length <= 3) {
+            return numbers;
+        } else if (numbers.length <= 7) {
+            return numbers.slice(0, 3) + '-' + numbers.slice(3);
+        } else if (numbers.length <= 10) {
+            return numbers.slice(0, 3) + '-' + numbers.slice(3, 6) + '-' + numbers.slice(6);
+        } else {
+            return numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7, 11);
+        }
+    }
+    
+    // 전화번호 입력 이벤트
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function(e) {
+            const cursorPosition = e.target.selectionStart;
+            const oldValue = e.target.value;
+            const formatted = formatPhoneNumber(oldValue);
+            
+            e.target.value = formatted;
+            
+            // 커서 위치 조정 (하이픈이 추가되면 커서를 한 칸 더 이동)
+            if (formatted.length > oldValue.length && formatted[cursorPosition] === '-') {
+                e.target.setSelectionRange(cursorPosition + 1, cursorPosition + 1);
+            } else {
+                e.target.setSelectionRange(cursorPosition, cursorPosition);
+            }
+        });
     }
     
     // ========================================
