@@ -1,0 +1,26 @@
+<svg width="192" height="192" xmlns="http://www.w3.org/2000/svg">
+  <!-- 배경 그라데이션 -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 배경 -->
+  <rect width="192" height="192" fill="url(#grad)" rx="20"/>
+  
+  <!-- 번개 아이콘 -->
+  <path d="M 96 40 L 70 96 L 96 96 L 96 152 L 122 96 L 96 96 Z" 
+        fill="#FFD700" 
+        stroke="#FFF" 
+        stroke-width="3"/>
+  
+  <!-- 텍스트 -->
+  <text x="96" y="175" 
+        font-family="Arial, sans-serif" 
+        font-size="24" 
+        font-weight="bold" 
+        fill="white" 
+        text-anchor="middle">에벤에셀</text>
+</svg>

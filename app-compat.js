@@ -1297,3 +1297,34 @@ document.querySelectorAll('.nav-tab').forEach(tab => {
         document.getElementById(view + 'View').classList.add('active');
     });
 });
+
+// ========================================
+// PWA Service Worker 등록
+// ========================================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+                console.log('✅ Service Worker 등록 성공:', registration.scope);
+            })
+            .catch(error => {
+                console.log('❌ Service Worker 등록 실패:', error);
+            });
+    });
+}
+
+// 홈 화면 추가 안내
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    // 기본 설치 프롬프트 방지
+    e.preventDefault();
+    // 나중에 사용하기 위해 저장
+    deferredPrompt = e;
+    console.log('💡 앱 설치 가능 - 홈 화면에 추가할 수 있습니다');
+});
+
+// 설치 완료 이벤트
+window.addEventListener('appinstalled', () => {
+    console.log('🎉 앱이 홈 화면에 추가되었습니다!');
+    deferredPrompt = null;
+});

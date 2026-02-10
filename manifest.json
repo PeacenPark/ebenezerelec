@@ -1,0 +1,27 @@
+{
+  "name": "에벤에셀 전기 거래 장부",
+  "short_name": "에벤에셀 전기",
+  "description": "전기 서비스 거래 내역 관리 시스템",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#667eea",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "ko-KR",
+  "dir": "ltr"
+}
