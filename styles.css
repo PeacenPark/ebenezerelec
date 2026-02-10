@@ -636,6 +636,7 @@ body {
 
 .stats-table-container {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* iOS 부드러운 스크롤 */
 }
 
 .stats-table-container.hidden {
@@ -873,4 +874,402 @@ body {
 .btn-action:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* 메인 네비게이션 */
+.main-nav {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: center;
+}
+
+.nav-tab {
+    padding: 12px 30px;
+    border: none;
+    background: white;
+    color: #667eea;
+    border-radius: 8px;
+    font-size: 1.05em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.nav-tab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.nav-tab.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+/* 뷰 섹션 */
+.view-section {
+    display: none;
+}
+
+.view-section.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========================================
+   모바일 반응형 최적화
+======================================== */
+
+/* 태블릿 (1024px 이하) */
+@media (max-width: 1024px) {
+    .container {
+        max-width: 100%;
+    }
+    
+    .detail-cost-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* 모바일 (768px 이하) */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    /* 헤더 */
+    .header {
+        padding: 20px 15px;
+        margin-bottom: 15px;
+    }
+    
+    .header h1 {
+        font-size: 1.5em;
+    }
+    
+    .header p {
+        font-size: 0.9em;
+    }
+    
+    /* 메인 네비게이션 */
+    .main-nav {
+        gap: 8px;
+        margin-top: 15px;
+    }
+    
+    .nav-tab {
+        padding: 10px 20px;
+        font-size: 0.95em;
+        flex: 1;
+    }
+    
+    /* 통계 헤더 */
+    .stats-header {
+        padding: 15px;
+    }
+    
+    .section-title {
+        font-size: 1.3em;
+    }
+    
+    /* 통계 탭 */
+    .stats-tabs {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .stats-tab {
+        font-size: 0.85em;
+        padding: 8px 12px;
+        min-width: 80px;
+    }
+    
+    /* 통계 표 */
+    .stats-table-container {
+        padding: 15px;
+    }
+    
+    .stats-table {
+        font-size: 0.8em;
+    }
+    
+    .stats-table th,
+    .stats-table td {
+        padding: 8px 6px;
+    }
+    
+    .stats-table th:first-child,
+    .stats-table td:first-child {
+        padding-left: 10px;
+    }
+    
+    /* 차트 */
+    .chart-container {
+        padding: 15px;
+        max-height: 300px;
+    }
+    
+    .chart-container canvas {
+        max-height: 250px;
+    }
+    
+    /* 거래 등록 버튼 */
+    .add-transaction-btn-container {
+        padding: 15px;
+    }
+    
+    .btn-add-transaction {
+        width: 100%;
+        padding: 15px;
+        font-size: 1em;
+    }
+    
+    /* 검색 및 필터 */
+    .filter-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .filter-buttons {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .filter-btn {
+        flex: 1;
+        padding: 8px 10px;
+        font-size: 0.85em;
+    }
+    
+    .month-selector {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    /* 거래 카드 */
+    .transaction-item {
+        padding: 15px;
+        margin-bottom: 12px;
+    }
+    
+    .customer-name {
+        font-size: 1.1em;
+    }
+    
+    .transaction-summary {
+        gap: 8px;
+    }
+    
+    .summary-item {
+        font-size: 0.85em;
+    }
+    
+    .transaction-amount {
+        padding: 10px;
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .amount-value {
+        font-size: 1.1em;
+    }
+    
+    .profit-value {
+        font-size: 1em;
+    }
+    
+    /* 모달 */
+    .modal-content {
+        width: 95%;
+        max-width: 95%;
+        margin: 20px auto;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .modal-header {
+        padding: 15px;
+    }
+    
+    .modal-header h2 {
+        font-size: 1.2em;
+    }
+    
+    .modal-close {
+        font-size: 1.8em;
+    }
+    
+    /* 폼 */
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        font-size: 0.9em;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        padding: 10px;
+        font-size: 0.95em;
+    }
+    
+    /* 상세 모달 */
+    .detail-modal-content {
+        width: 95%;
+        max-width: 95%;
+        padding: 15px;
+    }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .detail-cost-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .detail-cost-box {
+        padding: 12px;
+    }
+    
+    .detail-cost-value {
+        font-size: 1.1em;
+    }
+    
+    .detail-actions {
+        flex-direction: column;
+    }
+    
+    .btn-action {
+        padding: 12px;
+        font-size: 1em;
+    }
+}
+
+/* 작은 모바일 (480px 이하) */
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+    
+    .header {
+        padding: 15px 10px;
+        border-radius: 10px;
+    }
+    
+    .header h1 {
+        font-size: 1.3em;
+    }
+    
+    .header p {
+        font-size: 0.85em;
+    }
+    
+    .nav-tab {
+        padding: 8px 15px;
+        font-size: 0.9em;
+    }
+    
+    .stats-tab {
+        font-size: 0.75em;
+        padding: 6px 8px;
+        min-width: 70px;
+    }
+    
+    .stats-table {
+        font-size: 0.75em;
+    }
+    
+    .stats-table th,
+    .stats-table td {
+        padding: 6px 4px;
+    }
+    
+    .filter-btn {
+        padding: 6px 8px;
+        font-size: 0.8em;
+    }
+    
+    .transaction-item {
+        padding: 12px;
+    }
+    
+    .customer-name {
+        font-size: 1em;
+    }
+    
+    .summary-item {
+        font-size: 0.8em;
+    }
+    
+    .amount-value {
+        font-size: 1em;
+    }
+    
+    .detail-cost-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .chart-container {
+        padding: 10px;
+        max-height: 250px;
+    }
+    
+    .chart-container canvas {
+        max-height: 200px;
+    }
+}
+
+/* 가로 모드 최적화 */
+@media (max-width: 768px) and (orientation: landscape) {
+    .modal-content {
+        max-height: 85vh;
+    }
+    
+    .detail-modal-content {
+        max-height: 85vh;
+    }
+}
+
+/* 터치 디바이스 최적화 */
+@media (hover: none) and (pointer: coarse) {
+    .nav-tab,
+    .stats-tab,
+    .filter-btn,
+    .transaction-item,
+    .btn-add-transaction {
+        min-height: 44px; /* iOS 권장 터치 타겟 크기 */
+    }
+    
+    .transaction-item:active {
+        transform: scale(0.98);
+    }
+    
+    .nav-tab:active,
+    .stats-tab:active,
+    .filter-btn:active {
+        transform: scale(0.95);
+    }
 }

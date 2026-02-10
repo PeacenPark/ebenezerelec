@@ -12,29 +12,17 @@
         <div class="header">
             <h1>⚡ 에벤에셀 전기 거래 장부</h1>
             <p>전기 서비스 거래 내역 관리 시스템</p>
-        </div>
-
-        <!-- 통계 카드 -->
-        <div class="stats-container">
-            <div class="stat-card">
-                <h3>총 거래 건수</h3>
-                <div class="value" id="totalCount">0</div>
-            </div>
-            <div class="stat-card">
-                <h3>총 매출액</h3>
-                <div class="value" id="totalRevenue">₩0</div>
-            </div>
-            <div class="stat-card">
-                <h3>총 자재비</h3>
-                <div class="value" id="totalMaterialCost">₩0</div>
-            </div>
-            <div class="stat-card">
-                <h3>순이익</h3>
-                <div class="value" id="totalProfit">₩0</div>
+            
+            <!-- 메인 네비게이션 -->
+            <div class="main-nav">
+                <button class="nav-tab active" data-view="stats">📊 통계</button>
+                <button class="nav-tab" data-view="transactions">📋 거래 내역</button>
             </div>
         </div>
 
-        <!-- 통계 표 -->
+        <!-- 통계 화면 -->
+        <div id="statsView" class="view-section active">
+            <!-- 통계 표 -->
         <div class="stats-table-section">
             <div class="stats-header">
                 <h2 class="section-title">📊 월별/지역별 통계</h2>
@@ -140,13 +128,49 @@
                 </table>
             </div>
         </div>
-
-        <!-- 거래 추가 버튼 -->
-        <div class="add-transaction-btn-container">
-            <button class="btn-add-transaction" id="openModalBtn">
-                ➕ 새 거래 등록
-            </button>
         </div>
+        <!-- 통계 화면 종료 -->
+
+        <!-- 거래 내역 화면 -->
+        <div id="transactionsView" class="view-section">
+            <!-- 거래 추가 버튼 -->
+            <div class="add-transaction-btn-container">
+                <button class="btn-add-transaction" id="openModalBtn">
+                    ➕ 새 거래 등록
+                </button>
+            </div>
+
+            <!-- 거래 목록 -->
+            <div class="list-section">
+                <h2 class="section-title">📊 거래 내역 목록</h2>
+                
+                <!-- 검색 및 필터 -->
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 고객명, 위치, 내용으로 검색...">
+                </div>
+
+                <div class="filter-container">
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-filter="all">전체</button>
+                        <button class="filter-btn" data-filter="today">오늘</button>
+                        <button class="filter-btn" data-filter="week">이번 주</button>
+                        <button class="filter-btn" data-filter="month">이번 달</button>
+                    </div>
+                    
+                    <div class="month-selector">
+                        <select id="monthFilter">
+                            <option value="">월별 조회</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 거래 목록 -->
+                <div class="transaction-list" id="transactionList">
+                    <div class="loading">데이터를 불러오는 중...</div>
+                </div>
+            </div>
+        </div>
+        <!-- 거래 내역 화면 종료 -->
 
         <!-- 거래 입력 모달 -->
         <div class="modal" id="transactionModal">
@@ -272,41 +296,7 @@
             </div>
         </div>
 
-        <!-- 메인 콘텐츠 -->
-        <div class="content-wrapper">
-            <!-- 거래 목록 -->
-            <div class="list-section">
-                <h2 class="section-title">📊 거래 내역 목록</h2>
-                
-                <!-- 검색 및 필터 -->
-                <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="🔍 고객명, 위치, 내용으로 검색...">
-                </div>
-
-                <div class="filter-container">
-                    <div class="filter-buttons">
-                        <button class="filter-btn active" data-filter="all">전체</button>
-                        <button class="filter-btn" data-filter="today">오늘</button>
-                        <button class="filter-btn" data-filter="week">이번 주</button>
-                        <button class="filter-btn" data-filter="month">이번 달</button>
-                    </div>
-                    
-                    <div class="month-selector">
-                        <select id="monthFilter">
-                            <option value="">월별 조회</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- 거래 목록 -->
-                <div class="transaction-list" id="transactionList">
-                    <div class="loading">데이터를 불러오는 중...</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 상세 보기 모달 -->
+        <!-- 상세 보기 모달 -->
     <div id="detailModal" class="modal">
         <div class="modal-content detail-modal-content">
             <div class="modal-header">
@@ -328,6 +318,7 @@
             </div>
         </div>
     </div>
+    <!-- container 종료 -->
 
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>

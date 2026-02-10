@@ -319,15 +319,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 통계 업데이트
     // ========================================
     function updateStatistics(transactions) {
-        const totalCount = transactions.length;
-        const totalRevenue = transactions.reduce((sum, t) => sum + t.totalCost, 0);
-        const totalMaterialCost = transactions.reduce((sum, t) => sum + t.materialCost, 0);
-        const totalProfit = transactions.reduce((sum, t) => sum + t.profit, 0);
-    
-        document.getElementById('totalCount').textContent = totalCount;
-        document.getElementById('totalRevenue').textContent = '₩' + formatNumber(totalRevenue);
-        document.getElementById('totalMaterialCost').textContent = '₩' + formatNumber(totalMaterialCost);
-        document.getElementById('totalProfit').textContent = '₩' + formatNumber(totalProfit);
+        // 요약 통계 카드는 제거됨 - 필요 없음
+        // 월별 통계는 별도로 generateMonthlyStats()에서 처리
     }
     
     // ========================================
@@ -933,7 +926,7 @@ let locationChart = null;
 let serviceChart = null;
 let referralChart = null;
 
-// 월별 차트 생성 (선 그래프)
+// 월별 차트 생성 (선 그래프 - 최근 12개월)
 function createMonthlyChart(months, data) {
     const ctx = document.getElementById('monthlyChart');
     if (!ctx) return;
@@ -942,7 +935,9 @@ function createMonthlyChart(months, data) {
         monthlyChart.destroy();
     }
     
-    const labels = [...months].reverse(); // 오래된 순으로
+    // 최근 12개월만 선택
+    const recentMonths = months.slice(0, 12);
+    const labels = [...recentMonths].reverse(); // 오래된 순으로
     const revenues = labels.map(month => data[month].totalRevenue);
     const profits = labels.map(month => data[month].profit);
     
@@ -1003,7 +998,7 @@ function createMonthlyChart(months, data) {
                 },
                 title: {
                     display: true,
-                    text: '월별 매출 및 순이익 추이',
+                    text: '월별 매출 및 순이익 추이 (최근 12개월)',
                     font: { 
                         size: 16, 
                         weight: 'bold' 
@@ -1285,3 +1280,20 @@ function createReferralChart(referrals, data) {
         }
     });
 }
+
+
+// ========================================
+// 메인 네비게이션 탭 전환
+// ========================================
+document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        // 탭 활성화
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        
+        // 뷰 전환
+        const view = this.dataset.view;
+        document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+        document.getElementById(view + 'View').classList.add('active');
+    });
+});
