@@ -170,18 +170,36 @@ document.addEventListener('DOMContentLoaded', function() {
     // 전화번호 입력 이벤트
     if (phoneInput) {
         phoneInput.addEventListener('input', function(e) {
-            const cursorPosition = e.target.selectionStart;
-            const oldValue = e.target.value;
+            const input = e.target;
+            const oldValue = input.value;
+            const oldCursorPosition = input.selectionStart;
+            
+            // 포맷팅
             const formatted = formatPhoneNumber(oldValue);
             
-            e.target.value = formatted;
+            // 값 설정
+            input.value = formatted;
             
-            // 커서 위치 조정 (하이픈이 추가되면 커서를 한 칸 더 이동)
-            if (formatted.length > oldValue.length && formatted[cursorPosition] === '-') {
-                e.target.setSelectionRange(cursorPosition + 1, cursorPosition + 1);
-            } else {
-                e.target.setSelectionRange(cursorPosition, cursorPosition);
+            // 커서 위치 계산
+            // 이전 커서 위치까지의 숫자 개수 세기
+            const numbersBeforeCursor = oldValue.slice(0, oldCursorPosition).replace(/[^\d]/g, '').length;
+            
+            // 새 문자열에서 같은 개수의 숫자가 있는 위치 찾기
+            let newCursorPosition = 0;
+            let numberCount = 0;
+            
+            for (let i = 0; i < formatted.length; i++) {
+                if (formatted[i] >= '0' && formatted[i] <= '9') {
+                    numberCount++;
+                }
+                if (numberCount >= numbersBeforeCursor) {
+                    newCursorPosition = i + 1;
+                    break;
+                }
             }
+            
+            // 커서 위치 설정
+            input.setSelectionRange(newCursorPosition, newCursorPosition);
         });
     }
     
