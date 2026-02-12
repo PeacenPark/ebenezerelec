@@ -242,10 +242,10 @@ document.addEventListener('DOMContentLoaded', function() {
             referralSource: document.getElementById('referralSource').value,
             referralDetail: document.getElementById('referralDetail').value,
             content: document.getElementById('content').value,
-            totalCost: parseInt(document.getElementById('totalCost').value),
-            materialCost: parseInt(document.getElementById('materialCost').value),
-            laborCost: parseInt(document.getElementById('laborCost').value),
-            profit: parseInt(document.getElementById('profit').value),
+            totalCost: parseInt(document.getElementById('totalCost').value) || 0,
+            materialCost: parseInt(document.getElementById('materialCost').value) || 0,
+            laborCost: parseInt(document.getElementById('laborCost').value) || 0,
+            profit: parseInt(document.getElementById('profit').value) || 0,
             notes: document.getElementById('notes').value,
             timestamp: new Date().toISOString()
         };
@@ -517,10 +517,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
     
             monthlyData[month].count++;
-            monthlyData[month].totalRevenue += t.totalCost;
-            monthlyData[month].materialCost += t.materialCost;
-            monthlyData[month].laborCost += t.laborCost;
-            monthlyData[month].profit += t.profit;
+            monthlyData[month].totalRevenue += t.totalCost || 0;
+            monthlyData[month].materialCost += t.materialCost || 0;
+            monthlyData[month].laborCost += t.laborCost || 0;
+            monthlyData[month].profit += t.profit || 0;
         });
     
         const sortedMonths = Object.keys(monthlyData).sort().reverse();
@@ -593,8 +593,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
     
             locationData[t.location].count++;
-            locationData[t.location].totalRevenue += t.totalCost;
-            totalRevenue += t.totalCost;
+            locationData[t.location].totalRevenue += t.totalCost || 0;
+            totalRevenue += t.totalCost || 0;
         });
     
         const sortedLocations = Object.keys(locationData).sort((a, b) => 
@@ -654,8 +654,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
     
             serviceData[t.serviceType].count++;
-            serviceData[t.serviceType].totalRevenue += t.totalCost;
-            totalRevenue += t.totalCost;
+            serviceData[t.serviceType].totalRevenue += t.totalCost || 0;
+            totalRevenue += t.totalCost || 0;
         });
     
         const sortedServices = Object.keys(serviceData).sort((a, b) => 
@@ -716,8 +716,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
     
             referralData[source].count++;
-            referralData[source].totalRevenue += t.totalCost;
-            totalRevenue += t.totalCost;
+            referralData[source].totalRevenue += t.totalCost || 0;
+            totalRevenue += t.totalCost || 0;
         });
     
         const sortedReferrals = Object.keys(referralData).sort((a, b) => 
