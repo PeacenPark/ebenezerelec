@@ -220,8 +220,88 @@
                 <div id="scheduleDetailContent" class="detail-content"></div>
                 <div class="detail-actions" id="scheduleDetailActions">
                     <button class="btn-action btn-complete-action" id="completeScheduleBtn">✅ 완료</button>
+                    <button class="btn-action btn-edit-action" id="editScheduleBtn">✏️ 수정</button>
                     <button class="btn-action btn-delete-action" id="deleteScheduleBtn">🗑️ 삭제</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- 일정 수정 모달 -->
+        <div class="modal" id="scheduleEditModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="section-title">✏️ 작업 일정 수정</h2>
+                    <button class="modal-close" id="closeScheduleEditBtn">&times;</button>
+                </div>
+                <form id="scheduleEditForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editSchDate">작업 예정일 *</label>
+                            <input type="date" id="editSchDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editSchStartTime">시작 시간 *</label>
+                            <input type="time" id="editSchStartTime" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editSchEndTime">종료 시간 (예상)</label>
+                            <input type="time" id="editSchEndTime">
+                        </div>
+                        <div class="form-group">
+                            <label for="editSchServiceType">서비스 유형 *</label>
+                            <select id="editSchServiceType" required>
+                                <option value="">서비스 선택</option>
+                                <option value="전기안전점검">전기안전점검</option>
+                                <option value="차단기 교체">차단기 교체</option>
+                                <option value="누전 수리">누전 수리</option>
+                                <option value="접지공사">접지공사</option>
+                                <option value="배선 수리">배선 수리</option>
+                                <option value="콘센트/스위치 교체">콘센트/스위치 교체</option>
+                                <option value="조명 설치">조명 설치</option>
+                                <option value="소방전기">소방전기</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editSchLocation">위치 *</label>
+                        <select id="editSchLocation" required>
+                            <option value="">지역 선택</option>
+                            <option value="용인시 처인구">용인시 처인구</option>
+                            <option value="용인시 기흥구">용인시 기흥구</option>
+                            <option value="용인시 수지구">용인시 수지구</option>
+                            <option value="수원시 장안구">수원시 장안구</option>
+                            <option value="수원시 권선구">수원시 권선구</option>
+                            <option value="수원시 팔달구">수원시 팔달구</option>
+                            <option value="수원시 영통구">수원시 영통구</option>
+                            <option value="화성시 동탄">화성시 동탄</option>
+                            <option value="화성시 봉담">화성시 봉담</option>
+                            <option value="화성시 향남">화성시 향남</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editSchDetailedLocation">상세 주소</label>
+                        <input type="text" id="editSchDetailedLocation" placeholder="동/아파트명 등">
+                    </div>
+                    <div class="form-group">
+                        <label for="editSchWorkContent">작업 내용 *</label>
+                        <textarea id="editSchWorkContent" required placeholder="작업 내용을 상세히 입력하세요"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editSchMaterials">필요 자재</label>
+                        <textarea id="editSchMaterials" placeholder="필요한 자재 목록을 입력하세요"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editSchNotes">일정 메모</label>
+                        <textarea id="editSchNotes" placeholder="현장 주의사항, 준비물 등"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        ✅ 일정 수정 저장
+                    </button>
+                </form>
             </div>
         </div>
 

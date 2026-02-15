@@ -1240,10 +1240,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (schedule.status === 'completed') {
             actionsEl.innerHTML = `
                 <button class="btn-action" style="background:#ff9800;color:white;" id="undoCompleteBtn">↩️ 미완료</button>
+                <button class="btn-action btn-edit-action" id="editScheduleBtnAction">✏️ 수정</button>
                 <button class="btn-action btn-delete-action" id="deleteScheduleBtn">🗑️ 삭제</button>`;
         } else {
             actionsEl.innerHTML = `
                 <button class="btn-action btn-complete-action" id="completeScheduleBtn">✅ 완료 처리</button>
+                <button class="btn-action btn-edit-action" id="editScheduleBtnAction">✏️ 수정</button>
                 <button class="btn-action btn-delete-action" id="deleteScheduleBtn">🗑️ 삭제</button>`;
         }
 
@@ -1251,6 +1253,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const compBtn = document.getElementById('completeScheduleBtn');
         const undoBtn = document.getElementById('undoCompleteBtn');
         const delBtn = document.getElementById('deleteScheduleBtn');
+        const editBtn = document.getElementById('editScheduleBtnAction');
 
         if (compBtn) {
             compBtn.addEventListener('click', async function() {
@@ -1280,10 +1283,93 @@ document.addEventListener('DOMContentLoaded', function() {
                 } catch (err) { alert('❌ 오류: ' + err.message); }
             });
         }
+        if (editBtn) {
+            editBtn.addEventListener('click', function() {
+                const idToEdit = currentScheduleDetailId;
+                closeScheduleDetailModal();
+                openScheduleEditModal(idToEdit);
+            });
+        }
 
         scheduleDetailModal.classList.add('show');
         document.body.style.overflow = 'hidden';
     };
+
+    // ========================================
+    // 일정 수정 모달
+    // ========================================
+    const scheduleEditModal = document.getElementById('scheduleEditModal');
+    const closeScheduleEditBtn = document.getElementById('closeScheduleEditBtn');
+    const scheduleEditForm = document.getElementById('scheduleEditForm');
+    let currentScheduleEditId = null;
+
+    function openScheduleEditModal(id) {
+        const schedule = allSchedules.find(s => s.id === id);
+        if (!schedule) return;
+
+        currentScheduleEditId = id;
+
+        document.getElementById('editSchDate').value = schedule.date || '';
+        document.getElementById('editSchStartTime').value = schedule.startTime || '';
+        document.getElementById('editSchEndTime').value = schedule.endTime || '';
+        document.getElementById('editSchServiceType').value = schedule.serviceType || '';
+        document.getElementById('editSchLocation').value = schedule.location || '';
+        document.getElementById('editSchDetailedLocation').value = schedule.detailedLocation || '';
+        document.getElementById('editSchWorkContent').value = schedule.workContent || '';
+        document.getElementById('editSchMaterials').value = schedule.materials || '';
+        document.getElementById('editSchNotes').value = schedule.scheduleNotes || '';
+
+        scheduleEditModal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeScheduleEditModal() {
+        if (scheduleEditModal) {
+            scheduleEditModal.classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+        currentScheduleEditId = null;
+    }
+
+    if (closeScheduleEditBtn) {
+        closeScheduleEditBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            closeScheduleEditModal();
+        });
+    }
+
+    window.addEventListener('click', function(event) {
+        if (event.target === scheduleEditModal) {
+            closeScheduleEditModal();
+        }
+    });
+
+    if (scheduleEditForm) {
+        scheduleEditForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!currentScheduleEditId) return;
+
+            const updateData = {
+                date: document.getElementById('editSchDate').value,
+                startTime: document.getElementById('editSchStartTime').value,
+                endTime: document.getElementById('editSchEndTime').value || '',
+                serviceType: document.getElementById('editSchServiceType').value,
+                location: document.getElementById('editSchLocation').value,
+                detailedLocation: document.getElementById('editSchDetailedLocation').value || '',
+                workContent: document.getElementById('editSchWorkContent').value,
+                materials: document.getElementById('editSchMaterials').value || '',
+                scheduleNotes: document.getElementById('editSchNotes').value || ''
+            };
+
+            try {
+                await db.collection('schedules').doc(currentScheduleEditId).update(updateData);
+                alert('✅ 작업 일정이 수정되었습니다!');
+                closeScheduleEditModal();
+            } catch (err) {
+                alert('❌ 수정 중 오류가 발생했습니다: ' + err.message);
+            }
+        });
+    }
 
     function closeScheduleDetailModal() {
         if (scheduleDetailModal) {
