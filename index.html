@@ -34,6 +34,7 @@
             <div class="main-nav">
                 <button class="nav-tab active" data-view="stats">📊 통계</button>
                 <button class="nav-tab" data-view="transactions">📋 거래 내역</button>
+                <button class="nav-tab" data-view="schedule">📅 작업 일정</button>
             </div>
         </div>
 
@@ -189,6 +190,41 @@
         </div>
         <!-- 거래 내역 화면 종료 -->
 
+        <!-- 작업 일정 화면 -->
+        <div id="scheduleView" class="view-section">
+            <div class="schedule-container">
+                <div class="calendar-header">
+                    <button class="calendar-nav-btn" id="prevMonth">◀</button>
+                    <h2 class="calendar-title" id="calendarTitle">2026년 2월</h2>
+                    <button class="calendar-nav-btn" id="nextMonth">▶</button>
+                </div>
+                <div class="calendar-grid" id="calendarGrid">
+                    <!-- JS에서 요일 헤더 + 날짜 셀 모두 렌더링 -->
+                </div>
+                <!-- 선택된 날짜의 일정 목록 -->
+                <div class="schedule-list-section" id="scheduleListSection" style="display:none;">
+                    <h3 class="schedule-list-title" id="scheduleListTitle">일정 목록</h3>
+                    <div class="schedule-list" id="scheduleList"></div>
+                </div>
+            </div>
+        </div>
+        <!-- 작업 일정 화면 종료 -->
+
+        <!-- 일정 상세 모달 -->
+        <div id="scheduleDetailModal" class="modal">
+            <div class="modal-content detail-modal-content">
+                <div class="modal-header">
+                    <h2>📅 작업 일정 상세</h2>
+                    <span class="close-btn" id="closeScheduleDetailBtn">&times;</span>
+                </div>
+                <div id="scheduleDetailContent" class="detail-content"></div>
+                <div class="detail-actions" id="scheduleDetailActions">
+                    <button class="btn-action btn-complete-action" id="completeScheduleBtn">✅ 완료</button>
+                    <button class="btn-action btn-delete-action" id="deleteScheduleBtn">🗑️ 삭제</button>
+                </div>
+            </div>
+        </div>
+
         <!-- 거래 입력 모달 -->
         <div class="modal" id="transactionModal">
             <div class="modal-content">
@@ -304,6 +340,42 @@
                     <div class="form-group">
                         <label for="notes">비고</label>
                         <textarea id="notes" placeholder="추가 메모사항"></textarea>
+                    </div>
+
+                    <!-- 작업 일정 추가 토글 -->
+                    <div class="schedule-toggle-section">
+                        <label class="schedule-toggle-label">
+                            <input type="checkbox" id="addScheduleToggle">
+                            <span class="schedule-toggle-text">📅 작업 일정도 함께 등록</span>
+                        </label>
+                        <div class="schedule-fields" id="scheduleFields" style="display:none;">
+                            <div class="schedule-fields-title">📅 작업 일정 정보</div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="scheduleDate">작업 예정일 *</label>
+                                    <input type="date" id="scheduleDate">
+                                </div>
+                                <div class="form-group">
+                                    <label for="scheduleStartTime">시작 시간 *</label>
+                                    <input type="time" id="scheduleStartTime">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="scheduleEndTime">종료 시간 (예상)</label>
+                                    <input type="time" id="scheduleEndTime">
+                                </div>
+                                <div class="form-group"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="scheduleMaterials">필요 자재</label>
+                                <textarea id="scheduleMaterials" placeholder="필요한 자재 목록을 입력하세요&#10;예: 2P 30A 차단기 x2, VVF 2.5sq 케이블 10m"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="scheduleNotes">일정 메모</label>
+                                <textarea id="scheduleNotes" placeholder="현장 주의사항, 준비물 등"></textarea>
+                            </div>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-primary" id="submitBtn">

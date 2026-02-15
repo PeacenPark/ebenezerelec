@@ -20,6 +20,11 @@ console.log('Firebase 초기화 완료');
 // 전역 변수
 let currentEditId = null;
 let allTransactions = [];
+let allSchedules = [];
+let currentCalendarYear = new Date().getFullYear();
+let currentCalendarMonth = new Date().getMonth();
+let selectedCalendarDate = null;
+let currentScheduleDetailId = null;
 
 // ========================================
 // DOM이 로드된 후 실행
@@ -139,6 +144,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ========================================
+    // 작업 일정 토글
+    // ========================================
+    const addScheduleToggle = document.getElementById('addScheduleToggle');
+    const scheduleFields = document.getElementById('scheduleFields');
+    
+    if (addScheduleToggle) {
+        addScheduleToggle.addEventListener('change', function() {
+            scheduleFields.style.display = this.checked ? 'block' : 'none';
+            // 토글 켜면 작업일을 일정 날짜 기본값으로
+            if (this.checked) {
+                const dateVal = document.getElementById('date').value;
+                const scheduleDateInput = document.getElementById('scheduleDate');
+                if (dateVal && scheduleDateInput) {
+                    scheduleDateInput.value = dateVal;
+                }
+            }
+        });
+    }
+
+    // ========================================
     // 날짜 설정
     // ========================================
     function setDefaultDate() {
@@ -223,6 +248,11 @@ document.addEventListener('DOMContentLoaded', function() {
         setDefaultDate();
         calculateCosts();
         referralDetailGroup.style.display = 'none';
+        // 일정 필드 초기화
+        const scheduleToggle = document.getElementById('addScheduleToggle');
+        const scheduleFieldsEl = document.getElementById('scheduleFields');
+        if (scheduleToggle) scheduleToggle.checked = false;
+        if (scheduleFieldsEl) scheduleFieldsEl.style.display = 'none';
     }
     
     // ========================================
@@ -231,6 +261,19 @@ document.addEventListener('DOMContentLoaded', function() {
     async function handleFormSubmit(e) {
         e.preventDefault();
         console.log('폼 제출');
+
+        const scheduleToggle = document.getElementById('addScheduleToggle');
+        const isScheduleOn = scheduleToggle && scheduleToggle.checked;
+
+        // 일정 토글이 켜져 있으면 필수 필드 검증
+        if (isScheduleOn) {
+            const sDate = document.getElementById('scheduleDate').value;
+            const sTime = document.getElementById('scheduleStartTime').value;
+            if (!sDate || !sTime) {
+                alert('⚠️ 작업 일정의 예정일과 시작 시간을 입력해주세요.');
+                return;
+            }
+        }
     
         const transactionData = {
             customerName: document.getElementById('customerName').value,
@@ -251,14 +294,39 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     
         try {
+            let transactionId;
             if (currentEditId) {
                 await db.collection('transactions').doc(currentEditId).update(transactionData);
-                alert('✅ 거래 내역이 수정되었습니다!');
+                transactionId = currentEditId;
                 currentEditId = null;
                 document.getElementById('submitBtn').textContent = '✅ 거래 내역 저장';
             } else {
-                await db.collection('transactions').add(transactionData);
-                alert('✅ 거래 내역이 저장되었습니다!');
+                const docRef = await db.collection('transactions').add(transactionData);
+                transactionId = docRef.id;
+            }
+
+            // 일정 동시 저장
+            if (isScheduleOn && !currentEditId) {
+                const scheduleData = {
+                    customerName: transactionData.customerName,
+                    phone: transactionData.phone,
+                    location: transactionData.location,
+                    detailedLocation: transactionData.detailedLocation,
+                    serviceType: transactionData.serviceType,
+                    workContent: transactionData.content,
+                    date: document.getElementById('scheduleDate').value,
+                    startTime: document.getElementById('scheduleStartTime').value,
+                    endTime: document.getElementById('scheduleEndTime').value || '',
+                    materials: document.getElementById('scheduleMaterials').value || '',
+                    scheduleNotes: document.getElementById('scheduleNotes').value || '',
+                    status: 'pending',
+                    linkedTransactionId: transactionId,
+                    timestamp: new Date().toISOString()
+                };
+                await db.collection('schedules').add(scheduleData);
+                alert('✅ 거래 내역과 작업 일정이 함께 저장되었습니다!');
+            } else {
+                alert('✅ 거래 내역이 ' + (currentEditId ? '수정' : '저장') + '되었습니다!');
             }
     
             resetForm();
@@ -962,11 +1030,298 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ========================================
+    // 작업 일정 - 달력 및 목록
+    // ========================================
+    const scheduleDetailModal = document.getElementById('scheduleDetailModal');
+    const closeScheduleDetailBtn = document.getElementById('closeScheduleDetailBtn');
+
+    // 일정 데이터 로드
+    function loadSchedules() {
+        console.log('일정 데이터 로드 시작');
+        db.collection('schedules')
+            .orderBy('date', 'asc')
+            .onSnapshot((snapshot) => {
+                console.log('일정 데이터 스냅샷:', snapshot.size, '개');
+                allSchedules = [];
+                snapshot.forEach((doc) => {
+                    allSchedules.push({ id: doc.id, ...doc.data() });
+                });
+                renderCalendar();
+                if (selectedCalendarDate) {
+                    showScheduleListForDate(selectedCalendarDate);
+                }
+            }, (error) => {
+                console.error('일정 데이터 로드 에러:', error);
+            });
+    }
+
+    // 달력 렌더링
+    function renderCalendar() {
+        const titleEl = document.getElementById('calendarTitle');
+        const gridEl = document.getElementById('calendarGrid');
+        if (!titleEl || !gridEl) return;
+
+        titleEl.textContent = `${currentCalendarYear}년 ${currentCalendarMonth + 1}월`;
+
+        const firstDay = new Date(currentCalendarYear, currentCalendarMonth, 1);
+        const lastDay = new Date(currentCalendarYear, currentCalendarMonth + 1, 0);
+        const startDayOfWeek = firstDay.getDay();
+        const daysInMonth = lastDay.getDate();
+        const todayStr = new Date().toISOString().split('T')[0];
+        const prevLastDay = new Date(currentCalendarYear, currentCalendarMonth, 0).getDate();
+
+        // 요일 헤더
+        const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+        let html = weekdays.map(d => `<div class="calendar-weekday">${d}</div>`).join('');
+
+        // 이전 달
+        for (let i = startDayOfWeek - 1; i >= 0; i--) {
+            html += `<div class="calendar-day other-month"><div class="calendar-day-number">${prevLastDay - i}</div></div>`;
+        }
+
+        // 현재 달
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${currentCalendarYear}-${String(currentCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dow = new Date(currentCalendarYear, currentCalendarMonth, day).getDay();
+            
+            let cls = 'calendar-day';
+            if (dateStr === todayStr) cls += ' today';
+            if (dateStr === selectedCalendarDate) cls += ' selected';
+            if (dow === 0) cls += ' sunday';
+            if (dow === 6) cls += ' saturday';
+
+            const daySchedules = allSchedules.filter(s => s.date === dateStr);
+            let schHtml = '<div class="calendar-day-schedules">';
+            daySchedules.slice(0, 2).forEach(s => {
+                const sCls = s.status === 'completed' ? ' completed' : '';
+                schHtml += `<div class="calendar-schedule-dot${sCls}">${s.startTime ? s.startTime.substring(0,5) : ''} ${s.customerName}</div>`;
+            });
+            if (daySchedules.length > 2) {
+                schHtml += `<div class="calendar-more-count">+${daySchedules.length - 2}건</div>`;
+            }
+            schHtml += '</div>';
+
+            html += `<div class="${cls}" data-date="${dateStr}" onclick="handleCalendarDayClick('${dateStr}')">
+                <div class="calendar-day-number">${day}</div>${schHtml}</div>`;
+        }
+
+        // 다음 달
+        const totalCells = startDayOfWeek + daysInMonth;
+        const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+        for (let i = 1; i <= remaining; i++) {
+            html += `<div class="calendar-day other-month"><div class="calendar-day-number">${i}</div></div>`;
+        }
+
+        gridEl.innerHTML = html;
+    }
+
+    // 날짜 클릭
+    window.handleCalendarDayClick = function(dateStr) {
+        selectedCalendarDate = dateStr;
+        renderCalendar();
+        showScheduleListForDate(dateStr);
+    };
+
+    // 날짜별 일정 목록
+    function showScheduleListForDate(dateStr) {
+        const section = document.getElementById('scheduleListSection');
+        const titleEl = document.getElementById('scheduleListTitle');
+        const listEl = document.getElementById('scheduleList');
+        if (!section || !listEl) return;
+
+        const daySchedules = allSchedules.filter(s => s.date === dateStr);
+        const d = new Date(dateStr + 'T00:00:00');
+        const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+        const fDate = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${weekDays[d.getDay()]})`;
+
+        titleEl.textContent = `📅 ${fDate} 일정 (${daySchedules.length}건)`;
+        section.style.display = 'block';
+
+        if (daySchedules.length === 0) {
+            listEl.innerHTML = `<div class="empty-state" style="padding:30px;">
+                <div class="empty-state-icon">📋</div>
+                <h3>이 날짜에 등록된 일정이 없습니다</h3>
+                <p>거래 등록 시 "작업 일정도 함께 등록" 체크박스를 선택하면 일정이 자동 등록됩니다</p>
+            </div>`;
+            return;
+        }
+
+        daySchedules.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+
+        listEl.innerHTML = daySchedules.map(s => {
+            const timeStr = s.startTime ? s.startTime.substring(0, 5) : '';
+            const endStr = s.endTime ? ` ~ ${s.endTime.substring(0, 5)}` : '';
+            const cCls = s.status === 'completed' ? ' completed' : '';
+            return `<div class="schedule-item${cCls}" onclick="openScheduleDetailModal('${s.id}')">
+                <div class="schedule-item-header">
+                    <div class="schedule-item-time">🕐 ${timeStr}${endStr}</div>
+                    <div class="schedule-item-service">${s.serviceType}</div>
+                </div>
+                <div class="schedule-item-body">
+                    <div class="schedule-item-info"><div class="label">고객명</div><div>👤 ${s.customerName}</div></div>
+                    <div class="schedule-item-info"><div class="label">위치</div><div>📍 ${s.location} ${s.detailedLocation || ''}</div></div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // 달력 이전/다음 월
+    const prevMonthBtn = document.getElementById('prevMonth');
+    const nextMonthBtn = document.getElementById('nextMonth');
+
+    if (prevMonthBtn) {
+        prevMonthBtn.addEventListener('click', function() {
+            currentCalendarMonth--;
+            if (currentCalendarMonth < 0) { currentCalendarMonth = 11; currentCalendarYear--; }
+            selectedCalendarDate = null;
+            document.getElementById('scheduleListSection').style.display = 'none';
+            renderCalendar();
+        });
+    }
+
+    if (nextMonthBtn) {
+        nextMonthBtn.addEventListener('click', function() {
+            currentCalendarMonth++;
+            if (currentCalendarMonth > 11) { currentCalendarMonth = 0; currentCalendarYear++; }
+            selectedCalendarDate = null;
+            document.getElementById('scheduleListSection').style.display = 'none';
+            renderCalendar();
+        });
+    }
+
+    // 일정 상세 모달
+    window.openScheduleDetailModal = function(id) {
+        const schedule = allSchedules.find(s => s.id === id);
+        if (!schedule) return;
+
+        currentScheduleDetailId = id;
+        const content = document.getElementById('scheduleDetailContent');
+        const timeStr = schedule.startTime ? schedule.startTime.substring(0, 5) : '-';
+        const endTimeStr = schedule.endTime ? schedule.endTime.substring(0, 5) : '-';
+        const statusBadge = schedule.status === 'completed'
+            ? '<span class="schedule-status-badge completed">✅ 완료</span>'
+            : '<span class="schedule-status-badge pending">⏳ 예정</span>';
+        
+        const linkedHtml = schedule.linkedTransactionId 
+            ? `<div style="margin-top:5px;"><span class="linked-transaction-badge" onclick="goToLinkedTransaction('${schedule.linkedTransactionId}')">🔗 연결된 거래 보기</span></div>` 
+            : '';
+
+        content.innerHTML = `
+            <div class="detail-section">
+                <div class="detail-section-title">상태</div>
+                ${statusBadge}${linkedHtml}
+            </div>
+            <div class="detail-section">
+                <div class="detail-section-title">고객 정보</div>
+                <div class="detail-grid">
+                    <div class="detail-item-box"><div class="detail-item-label">고객명</div><div class="detail-item-value">${schedule.customerName}</div></div>
+                    <div class="detail-item-box"><div class="detail-item-label">연락처</div><div class="detail-item-value">${schedule.phone || '-'}</div></div>
+                </div>
+            </div>
+            <div class="detail-section">
+                <div class="detail-section-title">일정 정보</div>
+                <div class="detail-grid">
+                    <div class="detail-item-box"><div class="detail-item-label">작업 날짜</div><div class="detail-item-value">${schedule.date}</div></div>
+                    <div class="detail-item-box"><div class="detail-item-label">작업 시간</div><div class="detail-item-value">${timeStr} ~ ${endTimeStr}</div></div>
+                    <div class="detail-item-box"><div class="detail-item-label">위치</div><div class="detail-item-value">${schedule.location} ${schedule.detailedLocation || ''}</div></div>
+                    <div class="detail-item-box"><div class="detail-item-label">서비스 유형</div><div class="detail-item-value">${schedule.serviceType}</div></div>
+                </div>
+            </div>
+            <div class="detail-section">
+                <div class="detail-section-title">작업 내용</div>
+                <div class="detail-full">${schedule.workContent || '-'}</div>
+            </div>
+            ${schedule.materials ? `<div class="detail-section"><div class="detail-section-title">🔧 필요 자재</div><div class="materials-list">${schedule.materials}</div></div>` : ''}
+            ${schedule.scheduleNotes ? `<div class="detail-section"><div class="detail-section-title">일정 메모</div><div class="detail-full">${schedule.scheduleNotes}</div></div>` : ''}
+        `;
+
+        // 버튼 업데이트
+        const actionsEl = document.getElementById('scheduleDetailActions');
+        if (schedule.status === 'completed') {
+            actionsEl.innerHTML = `
+                <button class="btn-action" style="background:#ff9800;color:white;" id="undoCompleteBtn">↩️ 미완료</button>
+                <button class="btn-action btn-delete-action" id="deleteScheduleBtn">🗑️ 삭제</button>`;
+        } else {
+            actionsEl.innerHTML = `
+                <button class="btn-action btn-complete-action" id="completeScheduleBtn">✅ 완료 처리</button>
+                <button class="btn-action btn-delete-action" id="deleteScheduleBtn">🗑️ 삭제</button>`;
+        }
+
+        // 이벤트
+        const compBtn = document.getElementById('completeScheduleBtn');
+        const undoBtn = document.getElementById('undoCompleteBtn');
+        const delBtn = document.getElementById('deleteScheduleBtn');
+
+        if (compBtn) {
+            compBtn.addEventListener('click', async function() {
+                try {
+                    await db.collection('schedules').doc(currentScheduleDetailId).update({ status: 'completed' });
+                    alert('✅ 작업 완료 처리되었습니다!');
+                    closeScheduleDetailModal();
+                } catch (err) { alert('❌ 오류: ' + err.message); }
+            });
+        }
+        if (undoBtn) {
+            undoBtn.addEventListener('click', async function() {
+                try {
+                    await db.collection('schedules').doc(currentScheduleDetailId).update({ status: 'pending' });
+                    alert('↩️ 미완료로 변경되었습니다.');
+                    closeScheduleDetailModal();
+                } catch (err) { alert('❌ 오류: ' + err.message); }
+            });
+        }
+        if (delBtn) {
+            delBtn.addEventListener('click', async function() {
+                if (!confirm('정말 이 작업 일정을 삭제하시겠습니까?')) return;
+                try {
+                    await db.collection('schedules').doc(currentScheduleDetailId).delete();
+                    alert('✅ 삭제되었습니다!');
+                    closeScheduleDetailModal();
+                } catch (err) { alert('❌ 오류: ' + err.message); }
+            });
+        }
+
+        scheduleDetailModal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    };
+
+    function closeScheduleDetailModal() {
+        if (scheduleDetailModal) {
+            scheduleDetailModal.classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+        currentScheduleDetailId = null;
+    }
+
+    if (closeScheduleDetailBtn) {
+        closeScheduleDetailBtn.addEventListener('click', closeScheduleDetailModal);
+    }
+
+    window.addEventListener('click', function(event) {
+        if (event.target === scheduleDetailModal) {
+            closeScheduleDetailModal();
+        }
+    });
+
+    // 연결된 거래 보기
+    window.goToLinkedTransaction = function(transactionId) {
+        closeScheduleDetailModal();
+        // 거래 내역 탭으로 전환
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+        document.querySelector('[data-view="transactions"]').classList.add('active');
+        document.getElementById('transactionsView').classList.add('active');
+        // 해당 거래 상세 열기
+        setTimeout(() => openDetailModal(transactionId), 300);
+    };
+
+    // ========================================
     // 초기화
     // ========================================
     console.log('앱 초기화 시작...');
     setDefaultDate();
     loadTransactions();
+    loadSchedules();
     
     console.log('=== 앱 초기화 완료 ===');
 });
