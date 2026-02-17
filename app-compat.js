@@ -289,6 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
             materialCost: parseInt(document.getElementById('materialCost').value) || 0,
             laborCost: parseInt(document.getElementById('laborCost').value) || 0,
             profit: parseInt(document.getElementById('profit').value) || 0,
+            paymentStatus: document.querySelector('input[name="paymentStatus"]:checked').value,
             notes: document.getElementById('notes').value,
             timestamp: new Date().toISOString()
         };
@@ -358,6 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 displayTransactions(allTransactions);
                 updateStatistics(allTransactions);
+                updateUnpaidSummary(allTransactions);
                 generateMonthlyStats(allTransactions);
                 generateLocationStats(allTransactions);
                 generateServiceStats(allTransactions);
@@ -392,10 +394,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // 거래 항목 HTML 생성 (간단한 카드)
     // ========================================
     function createTransactionHTML(transaction) {
+        const isUnpaid = transaction.paymentStatus === 'unpaid';
+        const itemClass = isUnpaid ? 'transaction-item unpaid-item' : 'transaction-item';
+        const paymentBadge = isUnpaid 
+            ? '<span class="unpaid-badge">🔴 미수금</span>' 
+            : '<span class="paid-badge">💰 정산완료</span>';
+
         return `
-            <div class="transaction-item" data-id="${transaction.id}">
+            <div class="${itemClass}" data-id="${transaction.id}">
                 <div class="transaction-header">
-                    <div class="customer-name">👤 ${transaction.customerName}</div>
+                    <div class="customer-name">👤 ${transaction.customerName} ${paymentBadge}</div>
                     <div class="transaction-date">📅 ${transaction.date}</div>
                 </div>
 
@@ -448,6 +456,43 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ========================================
+    // 미수금 요약 업데이트
+    // ========================================
+    function updateUnpaidSummary(transactions) {
+        const unpaidItems = transactions.filter(t => t.paymentStatus === 'unpaid');
+        const unpaidTotal = unpaidItems.reduce((sum, t) => sum + (t.totalCost || 0), 0);
+        
+        const summaryEl = document.getElementById('unpaidSummary');
+        const countEl = document.getElementById('unpaidCount');
+        const amountEl = document.getElementById('unpaidAmount');
+        
+        if (summaryEl && countEl && amountEl) {
+            if (unpaidItems.length > 0) {
+                summaryEl.style.display = 'flex';
+                countEl.textContent = `${unpaidItems.length}건의 미수금`;
+                amountEl.textContent = `₩${formatNumber(unpaidTotal)}`;
+            } else {
+                summaryEl.style.display = 'none';
+            }
+        }
+    }
+    
+    // 미수금만 필터 (전역 함수)
+    window.filterUnpaidOnly = function() {
+        const filtered = allTransactions.filter(t => t.paymentStatus === 'unpaid');
+        displayTransactions(filtered);
+        
+        // 필터 버튼 상태 업데이트
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        const unpaidBtn = document.querySelector('.filter-btn[data-filter="unpaid"]');
+        if (unpaidBtn) unpaidBtn.classList.add('active');
+        
+        // 월별 선택 초기화
+        const monthFilterEl = document.getElementById('monthFilter');
+        if (monthFilterEl) monthFilterEl.value = '';
+    };
+    
+    // ========================================
     // 거래 수정
     // ========================================
     function editTransaction(id) {
@@ -470,6 +515,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('materialCost').value = transaction.materialCost;
         document.getElementById('laborCost').value = transaction.laborCost || 0;
         document.getElementById('notes').value = transaction.notes || '';
+        
+        // 수금 상태 복원
+        const paymentVal = transaction.paymentStatus || 'paid';
+        const paymentRadio = document.querySelector(`input[name="paymentStatus"][value="${paymentVal}"]`);
+        if (paymentRadio) paymentRadio.checked = true;
         
         // 유입 경로 상세 필드 표시 여부
         if (transaction.referralSource === '소개' || transaction.referralSource === '기타') {
@@ -560,6 +610,8 @@ document.addEventListener('DOMContentLoaded', function() {
             filtered = allTransactions.filter(t => t.date >= weekAgo);
         } else if (filter === 'month') {
             filtered = allTransactions.filter(t => t.date >= monthStart);
+        } else if (filter === 'unpaid') {
+            filtered = allTransactions.filter(t => t.paymentStatus === 'unpaid');
         }
     
         displayTransactions(filtered);
@@ -978,9 +1030,77 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="detail-cost-value">₩${formatNumber(transaction.profit)}</div>
                     </div>
                 </div>
+                <div style="margin-top: 15px; text-align: center;">
+                    ${transaction.paymentStatus === 'unpaid' 
+                        ? '<span class="unpaid-badge" style="font-size:1em;padding:8px 20px;">🔴 미수금</span>' 
+                        : '<span class="paid-badge" style="font-size:1em;padding:8px 20px;">💰 정산완료</span>'}
+                </div>
             </div>
         `;
         
+        // 상세 모달 액션 버튼 업데이트
+        const detailActionsEl = detailModal.querySelector('.detail-actions');
+        if (transaction.paymentStatus === 'unpaid') {
+            detailActionsEl.innerHTML = `
+                <button class="btn-action btn-complete-action" id="markPaidBtn">💰 정산완료 처리</button>
+                <button class="btn-action btn-edit-action" id="editDetailBtn">✏️ 수정</button>
+                <button class="btn-action btn-delete-action" id="deleteDetailBtn">🗑️ 삭제</button>
+            `;
+        } else {
+            detailActionsEl.innerHTML = `
+                <button class="btn-action" style="background:#ff9800;color:white;" id="markUnpaidBtn">🔴 미수금으로 변경</button>
+                <button class="btn-action btn-edit-action" id="editDetailBtn">✏️ 수정</button>
+                <button class="btn-action btn-delete-action" id="deleteDetailBtn">🗑️ 삭제</button>
+            `;
+        }
+
+        // 정산완료 처리 버튼
+        const markPaidBtn = document.getElementById('markPaidBtn');
+        if (markPaidBtn) {
+            markPaidBtn.addEventListener('click', async function() {
+                try {
+                    await db.collection('transactions').doc(currentDetailId).update({ paymentStatus: 'paid' });
+                    alert('💰 정산완료 처리되었습니다!');
+                    closeDetailModal();
+                } catch (err) { alert('❌ 오류: ' + err.message); }
+            });
+        }
+        
+        // 미수금으로 변경 버튼
+        const markUnpaidBtn = document.getElementById('markUnpaidBtn');
+        if (markUnpaidBtn) {
+            markUnpaidBtn.addEventListener('click', async function() {
+                try {
+                    await db.collection('transactions').doc(currentDetailId).update({ paymentStatus: 'unpaid' });
+                    alert('🔴 미수금으로 변경되었습니다.');
+                    closeDetailModal();
+                } catch (err) { alert('❌ 오류: ' + err.message); }
+            });
+        }
+
+        // 수정/삭제 버튼 재바인딩
+        const editDetailBtn2 = document.getElementById('editDetailBtn');
+        const deleteDetailBtn2 = document.getElementById('deleteDetailBtn');
+        
+        if (editDetailBtn2) {
+            editDetailBtn2.addEventListener('click', function() {
+                if (currentDetailId) {
+                    const idToEdit = currentDetailId;
+                    closeDetailModal();
+                    editTransaction(idToEdit);
+                }
+            });
+        }
+        if (deleteDetailBtn2) {
+            deleteDetailBtn2.addEventListener('click', function() {
+                if (currentDetailId) {
+                    const idToDelete = currentDetailId;
+                    closeDetailModal();
+                    deleteTransaction(idToDelete);
+                }
+            });
+        }
+
         detailModal.classList.add('show');
         document.body.style.overflow = 'hidden';
     }
@@ -1003,32 +1123,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 상세 모달에서 수정 버튼
-    const editDetailBtn = document.getElementById('editDetailBtn');
-    if (editDetailBtn) {
-        editDetailBtn.addEventListener('click', function() {
-            console.log('수정 버튼 클릭, currentDetailId:', currentDetailId);
-            if (currentDetailId) {
-                const idToEdit = currentDetailId;
-                closeDetailModal();
-                editTransaction(idToEdit);
-            }
-        });
-    }
-
-    // 상세 모달에서 삭제 버튼
-    const deleteDetailBtn = document.getElementById('deleteDetailBtn');
-    if (deleteDetailBtn) {
-        deleteDetailBtn.addEventListener('click', function() {
-            console.log('삭제 버튼 클릭, currentDetailId:', currentDetailId);
-            if (currentDetailId) {
-                const idToDelete = currentDetailId;
-                closeDetailModal();
-                deleteTransaction(idToDelete);
-            }
-        });
-    }
-    
     // ========================================
     // 작업 일정 - 달력 및 목록
     // ========================================

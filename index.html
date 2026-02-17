@@ -151,6 +151,18 @@
 
         <!-- 거래 내역 화면 -->
         <div id="transactionsView" class="view-section">
+            <!-- 미수금 요약 -->
+            <div class="unpaid-summary" id="unpaidSummary" style="display:none;" onclick="filterUnpaidOnly()">
+                <div class="unpaid-summary-info">
+                    <div class="unpaid-summary-icon">🔴</div>
+                    <div class="unpaid-summary-text">
+                        <h3>미수금 현황</h3>
+                        <p id="unpaidCount">0건</p>
+                    </div>
+                </div>
+                <div class="unpaid-summary-amount" id="unpaidAmount">₩0</div>
+            </div>
+
             <!-- 거래 추가 버튼 -->
             <div class="add-transaction-btn-container">
                 <button class="btn-add-transaction" id="openModalBtn">
@@ -173,6 +185,7 @@
                         <button class="filter-btn" data-filter="today">오늘</button>
                         <button class="filter-btn" data-filter="week">이번 주</button>
                         <button class="filter-btn" data-filter="month">이번 달</button>
+                        <button class="filter-btn" data-filter="unpaid" style="border-color:#f44336;color:#f44336;">🔴 미수금</button>
                     </div>
                     
                     <div class="month-selector">
@@ -414,6 +427,21 @@
                         <div class="form-group">
                             <label for="profit">순이익 (원)</label>
                             <input type="number" id="profit" min="0" value="0" readonly>
+                        </div>
+                    </div>
+
+                    <!-- 수금 상태 -->
+                    <div class="form-group">
+                        <label>수금 상태 *</label>
+                        <div class="payment-status-group">
+                            <label class="payment-radio-label paid">
+                                <input type="radio" name="paymentStatus" value="paid" checked>
+                                <span class="payment-radio-text">💰 정산완료</span>
+                            </label>
+                            <label class="payment-radio-label unpaid">
+                                <input type="radio" name="paymentStatus" value="unpaid">
+                                <span class="payment-radio-text">🔴 미수금</span>
+                            </label>
                         </div>
                     </div>
 

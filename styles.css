@@ -1256,6 +1256,155 @@ body {
 /* ========================================
    작업 일정 토글 섹션 (거래 모달 내)
 ======================================== */
+
+/* 수금 상태 라디오 */
+.payment-status-group {
+    display: flex;
+    gap: 12px;
+}
+
+.payment-radio-label {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+}
+
+.payment-radio-label:hover {
+    border-color: #667eea;
+}
+
+.payment-radio-label input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.payment-radio-label.paid input:checked ~ .payment-radio-text {
+    color: #4CAF50;
+    font-weight: 700;
+}
+
+.payment-radio-label.paid:has(input:checked) {
+    border-color: #4CAF50;
+    background: #e8f5e9;
+}
+
+.payment-radio-label.unpaid input:checked ~ .payment-radio-text {
+    color: #f44336;
+    font-weight: 700;
+}
+
+.payment-radio-label.unpaid:has(input:checked) {
+    border-color: #f44336;
+    background: #ffebee;
+}
+
+.payment-radio-text {
+    font-size: 1em;
+    font-weight: 500;
+    color: #555;
+}
+
+/* 미수금 배지 (거래 카드용) */
+.unpaid-badge {
+    display: inline-block;
+    background: #f44336;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 700;
+    animation: unpaidPulse 2s infinite;
+}
+
+@keyframes unpaidPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.paid-badge {
+    display: inline-block;
+    background: #4CAF50;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 700;
+}
+
+/* 미수금 거래 카드 강조 */
+.transaction-item.unpaid-item {
+    border-left: 4px solid #f44336;
+}
+
+/* 미수금 통계 카드 */
+.unpaid-summary {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    margin-bottom: 20px;
+    border-left: 5px solid #f44336;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.unpaid-summary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 35px rgba(0,0,0,0.25);
+}
+
+.unpaid-summary-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.unpaid-summary-icon {
+    font-size: 2em;
+}
+
+.unpaid-summary-text h3 {
+    color: #f44336;
+    font-size: 1.1em;
+    margin-bottom: 4px;
+}
+
+.unpaid-summary-text p {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.unpaid-summary-amount {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #f44336;
+}
+
+@media (max-width: 480px) {
+    .payment-status-group {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .unpaid-summary {
+        flex-direction: column;
+        text-align: center;
+    }
+}
 .schedule-toggle-section {
     margin-bottom: 20px;
     border: 2px solid #e0e0e0;
