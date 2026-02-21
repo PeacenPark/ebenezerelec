@@ -21,10 +21,13 @@ console.log('Firebase 초기화 완료');
 let currentEditId = null;
 let allTransactions = [];
 let allSchedules = [];
+let allExpenses = [];
 let currentCalendarYear = new Date().getFullYear();
 let currentCalendarMonth = new Date().getMonth();
 let selectedCalendarDate = null;
 let currentScheduleDetailId = null;
+let currentExpenseEditId = null;
+let currentExpenseDetailId = null;
 
 // ========================================
 // DOM이 로드된 후 실행
@@ -632,7 +635,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     totalRevenue: 0,
                     materialCost: 0,
                     laborCost: 0,
-                    profit: 0
+                    profit: 0,
+                    expense: 0,
+                    netProfit: 0
                 };
             }
     
@@ -642,12 +647,36 @@ document.addEventListener('DOMContentLoaded', function() {
             monthlyData[month].laborCost += t.laborCost || 0;
             monthlyData[month].profit += t.profit || 0;
         });
+
+        // 지출 데이터 병합
+        allExpenses.forEach(e => {
+            if (!e.date) return;
+            const month = e.date.substring(0, 7);
+            if (!monthlyData[month]) {
+                monthlyData[month] = {
+                    count: 0,
+                    totalRevenue: 0,
+                    materialCost: 0,
+                    laborCost: 0,
+                    profit: 0,
+                    expense: 0,
+                    netProfit: 0
+                };
+            }
+            monthlyData[month].expense += e.amount || 0;
+        });
+
+        // 실순이익 계산
+        Object.keys(monthlyData).forEach(month => {
+            const d = monthlyData[month];
+            d.netProfit = d.profit - d.expense;
+        });
     
         const sortedMonths = Object.keys(monthlyData).sort().reverse();
         const tbody = document.getElementById('monthlyStatsBody');
         
         if (sortedMonths.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="loading">데이터가 없습니다</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="loading">데이터가 없습니다</td></tr>';
             return;
         }
     
@@ -656,16 +685,21 @@ document.addEventListener('DOMContentLoaded', function() {
         let totalMaterialCost = 0;
         let totalLaborCost = 0;
         let totalProfit = 0;
+        let totalExpense = 0;
+        let totalNetProfit = 0;
     
         tbody.innerHTML = sortedMonths.map(month => {
             const data = monthlyData[month];
-            const avgPrice = Math.round(data.totalRevenue / data.count);
     
             totalCount += data.count;
             totalRevenue += data.totalRevenue;
             totalMaterialCost += data.materialCost;
             totalLaborCost += data.laborCost;
             totalProfit += data.profit;
+            totalExpense += data.expense;
+            totalNetProfit += data.netProfit;
+
+            const netColor = data.netProfit >= 0 ? '#4CAF50' : '#f44336';
     
             return `
                 <tr>
@@ -675,12 +709,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td class="number">₩${formatNumber(data.materialCost)}</td>
                     <td class="number">₩${formatNumber(data.laborCost)}</td>
                     <td class="number">₩${formatNumber(data.profit)}</td>
-                    <td class="number">₩${formatNumber(avgPrice)}</td>
+                    <td class="number" style="color:#f44336;">₩${formatNumber(data.expense)}</td>
+                    <td class="number" style="color:${netColor};font-weight:bold;">₩${formatNumber(data.netProfit)}</td>
                 </tr>
             `;
         }).join('');
     
-        const avgTotal = Math.round(totalRevenue / totalCount);
+        const netTotalColor = totalNetProfit >= 0 ? '#4CAF50' : '#f44336';
         tbody.innerHTML += `
             <tr class="total-row">
                 <td><strong>합계</strong></td>
@@ -689,7 +724,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td class="number">₩${formatNumber(totalMaterialCost)}</td>
                 <td class="number">₩${formatNumber(totalLaborCost)}</td>
                 <td class="number">₩${formatNumber(totalProfit)}</td>
-                <td class="number">₩${formatNumber(avgTotal)}</td>
+                <td class="number" style="color:#f44336;">₩${formatNumber(totalExpense)}</td>
+                <td class="number" style="color:${netTotalColor};font-weight:bold;">₩${formatNumber(totalNetProfit)}</td>
             </tr>
         `;
         
@@ -1496,12 +1532,322 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // ========================================
+    // 지출 내역 관련
+    // ========================================
+    const expenseModal = document.getElementById('expenseModal');
+    const openExpenseModalBtn = document.getElementById('openExpenseModalBtn');
+    const closeExpenseModalBtn = document.getElementById('closeExpenseModalBtn');
+    const expenseForm = document.getElementById('expenseForm');
+    const expenseDetailModal = document.getElementById('expenseDetailModal');
+    const closeExpenseDetailBtn = document.getElementById('closeExpenseDetailBtn');
+
+    // 지출 모달 열기/닫기
+    function openExpenseModal() {
+        if (expenseModal) {
+            expenseModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeExpenseModal() {
+        if (expenseModal) {
+            expenseModal.classList.remove('show');
+            document.body.style.overflow = 'auto';
+            if (currentExpenseEditId) {
+                currentExpenseEditId = null;
+                document.getElementById('expenseSubmitBtn').textContent = '✅ 운영비 저장';
+            }
+            expenseForm.reset();
+            const eDateInput = document.getElementById('expenseDate');
+            if (eDateInput) eDateInput.valueAsDate = new Date();
+        }
+    }
+
+    if (openExpenseModalBtn) {
+        openExpenseModalBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            openExpenseModal();
+        });
+    }
+    if (closeExpenseModalBtn) {
+        closeExpenseModalBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            closeExpenseModal();
+        });
+    }
+
+    window.addEventListener('click', function(event) {
+        if (event.target === expenseModal) closeExpenseModal();
+        if (event.target === expenseDetailModal) closeExpenseDetailModal();
+    });
+
+    // 지출 폼 제출
+    if (expenseForm) {
+        expenseForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const expenseData = {
+                date: document.getElementById('expenseDate').value,
+                category: document.getElementById('expenseCategory').value,
+                description: document.getElementById('expenseDescription').value,
+                amount: parseInt(document.getElementById('expenseAmount').value) || 0,
+                payMethod: document.getElementById('expensePayMethod').value,
+                notes: document.getElementById('expenseNotes').value,
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                if (currentExpenseEditId) {
+                    await db.collection('expenses').doc(currentExpenseEditId).update(expenseData);
+                    alert('✅ 운영비가 수정되었습니다!');
+                    currentExpenseEditId = null;
+                    document.getElementById('expenseSubmitBtn').textContent = '✅ 운영비 저장';
+                } else {
+                    await db.collection('expenses').add(expenseData);
+                    alert('✅ 운영비가 저장되었습니다!');
+                }
+                expenseForm.reset();
+                closeExpenseModal();
+            } catch (error) {
+                alert('❌ 오류: ' + error.message);
+            }
+        });
+    }
+
+    // 지출 데이터 로드
+    function loadExpenses() {
+        db.collection('expenses')
+            .orderBy('date', 'desc')
+            .onSnapshot((snapshot) => {
+                allExpenses = [];
+                snapshot.forEach((doc) => {
+                    allExpenses.push({ id: doc.id, ...doc.data() });
+                });
+                displayExpenses(allExpenses);
+                updateExpenseSummary(allExpenses);
+                populateExpenseMonthFilter();
+                // 지출 변경 시 월별 통계 갱신 (지출이 포함되므로)
+                if (allTransactions.length > 0) {
+                    generateMonthlyStats(allTransactions);
+                }
+            }, (error) => {
+                console.error('지출 데이터 에러:', error);
+            });
+    }
+
+    // 지출 목록 표시
+    function displayExpenses(expenses) {
+        const listEl = document.getElementById('expenseList');
+        if (!listEl) return;
+
+        if (expenses.length === 0) {
+            listEl.innerHTML = `<div class="empty-state"><div class="empty-state-icon">💸</div>
+                <h3>등록된 운영비가 없습니다</h3><p>위 버튼을 클릭하여 운영비를 등록하세요</p></div>`;
+            return;
+        }
+
+        listEl.innerHTML = expenses.map(exp => {
+            const categoryIcons = {
+                '장비/공구': '🔧', '자재 구매': '📦', '차량/유류': '🚗', '보험/세금': '📋',
+                '통신비': '📱', '사무용품': '🖊️', '식대/접대': '🍽️', '교육/자격증': '📚', '운영비': '💼', '기타': '📌'
+            };
+            const icon = categoryIcons[exp.category] || '📌';
+            return `<div class="expense-item" data-expense-id="${exp.id}" onclick="openExpenseDetailModal('${exp.id}')">
+                <div class="expense-item-header">
+                    <div class="expense-item-category">${icon} ${exp.category}</div>
+                    <div class="expense-item-date">📅 ${exp.date}</div>
+                </div>
+                <div class="expense-item-desc">${exp.description}</div>
+                <div class="expense-item-footer">
+                    <div class="expense-item-amount">-₩${formatNumber(exp.amount)}</div>
+                    <div class="expense-item-method">${exp.payMethod || ''}</div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // 지출 요약 업데이트
+    function updateExpenseSummary(expenses) {
+        const now = new Date();
+        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const monthExpenses = expenses.filter(e => e.date && e.date.startsWith(currentMonth));
+        const monthTotal = monthExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+        const allTotal = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+        const monthEl = document.getElementById('expenseMonthTotal');
+        const allEl = document.getElementById('expenseAllTotal');
+        if (monthEl) monthEl.textContent = `₩${formatNumber(monthTotal)}`;
+        if (allEl) allEl.textContent = `₩${formatNumber(allTotal)}`;
+    }
+
+    // 지출 월별 필터 채우기
+    function populateExpenseMonthFilter() {
+        const monthFilter = document.getElementById('expenseMonthFilter');
+        if (!monthFilter) return;
+
+        const months = new Set();
+        allExpenses.forEach(e => {
+            if (e.date) months.add(e.date.substring(0, 7));
+        });
+
+        const sorted = Array.from(months).sort().reverse();
+        monthFilter.innerHTML = '<option value="">월별 조회</option>';
+        sorted.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            monthFilter.appendChild(opt);
+        });
+    }
+
+    // 지출 검색
+    const expenseSearchInput = document.getElementById('expenseSearchInput');
+    if (expenseSearchInput) {
+        expenseSearchInput.addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const filtered = allExpenses.filter(ex =>
+                (ex.description || '').toLowerCase().includes(term) ||
+                (ex.category || '').toLowerCase().includes(term) ||
+                (ex.notes || '').toLowerCase().includes(term)
+            );
+            displayExpenses(filtered);
+        });
+    }
+
+    // 지출 필터
+    document.querySelectorAll('.expense-filter-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            document.querySelectorAll('.expense-filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+
+            const expMonthFilter = document.getElementById('expenseMonthFilter');
+            if (expMonthFilter) expMonthFilter.value = '';
+
+            const filter = this.dataset.filter;
+            let filtered = allExpenses;
+
+            if (filter === 'month') {
+                const now = new Date();
+                const cm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                filtered = allExpenses.filter(ex => ex.date && ex.date.startsWith(cm));
+            } else if (filter === 'equipment') {
+                filtered = allExpenses.filter(ex => ex.category === '장비/공구' || ex.category === '자재 구매');
+            } else if (filter === 'vehicle') {
+                filtered = allExpenses.filter(ex => ex.category === '차량/유류');
+            } else if (filter === 'operation') {
+                filtered = allExpenses.filter(ex => ex.category === '일반 운영비' || ex.category === '보험/세금' || ex.category === '통신비' || ex.category === '사무용품');
+            }
+
+            displayExpenses(filtered);
+        });
+    });
+
+    // 지출 월별 필터
+    const expenseMonthFilter = document.getElementById('expenseMonthFilter');
+    if (expenseMonthFilter) {
+        expenseMonthFilter.addEventListener('change', function(e) {
+            const sel = e.target.value;
+            document.querySelectorAll('.expense-filter-btn').forEach(b => b.classList.remove('active'));
+            if (sel) {
+                displayExpenses(allExpenses.filter(ex => ex.date && ex.date.startsWith(sel)));
+            } else {
+                displayExpenses(allExpenses);
+            }
+        });
+    }
+
+    // 지출 상세 모달
+    window.openExpenseDetailModal = function(id) {
+        const expense = allExpenses.find(e => e.id === id);
+        if (!expense) return;
+
+        currentExpenseDetailId = id;
+        const content = document.getElementById('expenseDetailContent');
+
+        content.innerHTML = `
+            <div class="expense-detail-amount">-₩${formatNumber(expense.amount)}</div>
+            <div class="detail-section">
+                <div class="detail-section-title">운영비 정보</div>
+                <div class="detail-grid">
+                    <div class="detail-item-box"><div class="detail-item-label">지출일</div><div class="detail-item-value">${expense.date}</div></div>
+                    <div class="detail-item-box"><div class="detail-item-label">카테고리</div><div class="detail-item-value">${expense.category}</div></div>
+                    <div class="detail-item-box"><div class="detail-item-label">결제 수단</div><div class="detail-item-value">${expense.payMethod || '-'}</div></div>
+                    <div class="detail-item-box"><div class="detail-item-label">금액</div><div class="detail-item-value" style="color:#f44336;font-weight:bold;">₩${formatNumber(expense.amount)}</div></div>
+                </div>
+            </div>
+            <div class="detail-section">
+                <div class="detail-section-title">운영비 내용</div>
+                <div class="detail-full">${expense.description}</div>
+            </div>
+            ${expense.notes ? `<div class="detail-section"><div class="detail-section-title">비고</div><div class="detail-full">${expense.notes}</div></div>` : ''}
+        `;
+
+        // 버튼 이벤트
+        const actionsEl = document.getElementById('expenseDetailActions');
+        actionsEl.innerHTML = `
+            <button class="btn-action btn-edit-action" id="editExpenseBtn">✏️ 수정</button>
+            <button class="btn-action btn-delete-action" id="deleteExpenseBtn">🗑️ 삭제</button>`;
+
+        document.getElementById('editExpenseBtn').addEventListener('click', function() {
+            const idToEdit = currentExpenseDetailId;
+            closeExpenseDetailModal();
+            editExpense(idToEdit);
+        });
+
+        document.getElementById('deleteExpenseBtn').addEventListener('click', async function() {
+            if (!confirm('정말 이 운영비를 삭제하시겠습니까?')) return;
+            try {
+                await db.collection('expenses').doc(currentExpenseDetailId).delete();
+                alert('✅ 삭제되었습니다!');
+                closeExpenseDetailModal();
+            } catch (err) { alert('❌ 오류: ' + err.message); }
+        });
+
+        expenseDetailModal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    };
+
+    function closeExpenseDetailModal() {
+        if (expenseDetailModal) {
+            expenseDetailModal.classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+        currentExpenseDetailId = null;
+    }
+
+    if (closeExpenseDetailBtn) {
+        closeExpenseDetailBtn.addEventListener('click', closeExpenseDetailModal);
+    }
+
+    // 지출 수정
+    function editExpense(id) {
+        const expense = allExpenses.find(e => e.id === id);
+        if (!expense) return;
+
+        currentExpenseEditId = id;
+        document.getElementById('expenseDate').value = expense.date || '';
+        document.getElementById('expenseCategory').value = expense.category || '';
+        document.getElementById('expenseDescription').value = expense.description || '';
+        document.getElementById('expenseAmount').value = expense.amount || 0;
+        document.getElementById('expensePayMethod').value = expense.payMethod || '카드';
+        document.getElementById('expenseNotes').value = expense.notes || '';
+
+        document.getElementById('expenseSubmitBtn').textContent = '✏️ 운영비 수정';
+        openExpenseModal();
+    }
+
+    // ========================================
     // 초기화
     // ========================================
     console.log('앱 초기화 시작...');
     setDefaultDate();
     loadTransactions();
     loadSchedules();
+    loadExpenses();
+    
+    // 지출 기본 날짜
+    const eDateInput = document.getElementById('expenseDate');
+    if (eDateInput) eDateInput.valueAsDate = new Date();
     
     console.log('=== 앱 초기화 완료 ===');
 });
@@ -1531,6 +1877,8 @@ function createMonthlyChart(months, data) {
     const labels = [...recentMonths].reverse(); // 오래된 순으로
     const revenues = labels.map(month => data[month].totalRevenue);
     const profits = labels.map(month => data[month].profit);
+    const expenses = labels.map(month => data[month].expense || 0);
+    const netProfits = labels.map(month => data[month].netProfit || 0);
     
     monthlyChart = new Chart(ctx, {
         type: 'line',
@@ -1564,6 +1912,35 @@ function createMonthlyChart(months, data) {
                     pointHoverRadius: 8,
                     tension: 0.4,
                     fill: true
+                },
+                {
+                    label: '운영비',
+                    data: expenses,
+                    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                    borderColor: 'rgba(244, 67, 54, 1)',
+                    borderWidth: 2,
+                    pointRadius: 5,
+                    pointBackgroundColor: 'rgba(244, 67, 54, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 7,
+                    tension: 0.4,
+                    borderDash: [5, 5],
+                    fill: false
+                },
+                {
+                    label: '실순이익',
+                    data: netProfits,
+                    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                    borderColor: 'rgba(255, 152, 0, 1)',
+                    borderWidth: 3,
+                    pointRadius: 6,
+                    pointBackgroundColor: 'rgba(255, 152, 0, 1)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 8,
+                    tension: 0.4,
+                    fill: true
                 }
             ]
         },
@@ -1589,7 +1966,7 @@ function createMonthlyChart(months, data) {
                 },
                 title: {
                     display: true,
-                    text: '월별 매출 및 순이익 추이 (최근 12개월)',
+                    text: '월별 매출·순이익·운영비·실순이익 추이 (최근 12개월)',
                     font: { 
                         size: 16, 
                         weight: 'bold' 

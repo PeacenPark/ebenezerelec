@@ -34,6 +34,7 @@
             <div class="main-nav">
                 <button class="nav-tab active" data-view="stats">📊 통계</button>
                 <button class="nav-tab" data-view="transactions">📋 거래 내역</button>
+                <button class="nav-tab" data-view="expenses">💼 운영비</button>
                 <button class="nav-tab" data-view="schedule">📅 작업 일정</button>
             </div>
         </div>
@@ -66,12 +67,13 @@
                             <th>자재비</th>
                             <th>인부 비용</th>
                             <th>순이익</th>
-                            <th>평균 단가</th>
+                            <th>운영비</th>
+                            <th>실순이익</th>
                         </tr>
                     </thead>
                     <tbody id="monthlyStatsBody">
                         <tr>
-                            <td colspan="7" class="loading">데이터를 불러오는 중...</td>
+                            <td colspan="8" class="loading">데이터를 불러오는 중...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -202,6 +204,136 @@
             </div>
         </div>
         <!-- 거래 내역 화면 종료 -->
+
+        <!-- 지출 내역 화면 -->
+        <div id="expensesView" class="view-section">
+            <!-- 지출 요약 -->
+            <div class="expense-summary-cards" id="expenseSummaryCards">
+                <div class="expense-summary-card">
+                    <div class="expense-summary-label">이번 달 운영비</div>
+                    <div class="expense-summary-value" id="expenseMonthTotal">₩0</div>
+                </div>
+                <div class="expense-summary-card">
+                    <div class="expense-summary-label">총 운영비</div>
+                    <div class="expense-summary-value" id="expenseAllTotal">₩0</div>
+                </div>
+            </div>
+
+            <!-- 지출 추가 버튼 -->
+            <div class="add-transaction-btn-container">
+                <button class="btn-add-transaction" id="openExpenseModalBtn" style="background: linear-gradient(135deg, #f44336 0%, #e91e63 100%); box-shadow: 0 5px 15px rgba(244, 67, 54, 0.3);">
+                    ➕ 새 운영비 등록
+                </button>
+            </div>
+
+            <!-- 지출 목록 -->
+            <div class="list-section">
+                <h2 class="section-title" style="border-bottom-color: #f44336;">💼 운영비 목록</h2>
+
+                <div class="search-box">
+                    <input type="text" id="expenseSearchInput" placeholder="🔍 내용, 카테고리로 검색...">
+                </div>
+
+                <div class="filter-container">
+                    <div class="filter-buttons">
+                        <button class="filter-btn expense-filter-btn active" data-filter="all">전체</button>
+                        <button class="filter-btn expense-filter-btn" data-filter="month">이번 달</button>
+                        <button class="filter-btn expense-filter-btn" data-filter="equipment">장비/공구</button>
+                        <button class="filter-btn expense-filter-btn" data-filter="vehicle">차량/유류</button>
+                        <button class="filter-btn expense-filter-btn" data-filter="operation">운영비</button>
+                    </div>
+                    <div class="month-selector">
+                        <select id="expenseMonthFilter">
+                            <option value="">월별 조회</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="transaction-list" id="expenseList">
+                    <div class="loading">데이터를 불러오는 중...</div>
+                </div>
+            </div>
+        </div>
+        <!-- 지출 내역 화면 종료 -->
+
+        <!-- 지출 입력 모달 -->
+        <div class="modal" id="expenseModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="section-title" style="border-bottom-color: #f44336;">💼 운영비 입력</h2>
+                    <button class="modal-close" id="closeExpenseModalBtn">&times;</button>
+                </div>
+                <form id="expenseForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="expenseDate">지출일 *</label>
+                            <input type="date" id="expenseDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="expenseCategory">카테고리 *</label>
+                            <select id="expenseCategory" required>
+                                <option value="">카테고리 선택</option>
+                                <option value="장비/공구">🔧 장비/공구</option>
+                                <option value="자재 구매">📦 자재 구매</option>
+                                <option value="차량/유류">🚗 차량/유류</option>
+                                <option value="보험/세금">📋 보험/세금</option>
+                                <option value="통신비">📱 통신비</option>
+                                <option value="사무용품">🖊️ 사무용품</option>
+                                <option value="식대/접대">🍽️ 식대/접대</option>
+                                <option value="교육/자격증">📚 교육/자격증</option>
+                                <option value="일반 운영비">💼 일반 운영비</option>
+                                <option value="기타">📌 기타</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="expenseDescription">운영비 내용 *</label>
+                        <input type="text" id="expenseDescription" required placeholder="예: 디지털 멀티미터 구매">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="expenseAmount">금액 (원) *</label>
+                            <input type="number" id="expenseAmount" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="expensePayMethod">결제 수단</label>
+                            <select id="expensePayMethod">
+                                <option value="카드">💳 카드</option>
+                                <option value="현금">💵 현금</option>
+                                <option value="계좌이체">🏦 계좌이체</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="expenseNotes">비고</label>
+                        <textarea id="expenseNotes" placeholder="추가 메모 (구매처, 영수증 번호 등)"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="expenseSubmitBtn" style="background: linear-gradient(135deg, #f44336 0%, #e91e63 100%);">
+                        ✅ 운영비 저장
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 지출 상세 모달 -->
+        <div id="expenseDetailModal" class="modal">
+            <div class="modal-content detail-modal-content">
+                <div class="modal-header">
+                    <h2>💼 운영비 상세</h2>
+                    <span class="close-btn" id="closeExpenseDetailBtn">&times;</span>
+                </div>
+                <div id="expenseDetailContent" class="detail-content"></div>
+                <div class="detail-actions" id="expenseDetailActions">
+                    <button class="btn-action btn-edit-action" id="editExpenseBtn">✏️ 수정</button>
+                    <button class="btn-action btn-delete-action" id="deleteExpenseBtn">🗑️ 삭제</button>
+                </div>
+            </div>
+        </div>
 
         <!-- 작업 일정 화면 -->
         <div id="scheduleView" class="view-section">
