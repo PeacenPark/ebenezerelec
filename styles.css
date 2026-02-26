@@ -1700,6 +1700,11 @@ body {
     opacity: 0.7;
 }
 
+.calendar-schedule-dot.multi-day {
+    background: linear-gradient(135deg, #ff9800 0%, #f44336 100%);
+    border-left: 2px solid #fff;
+}
+
 .calendar-more-count {
     font-size: 0.7em;
     color: #667eea;

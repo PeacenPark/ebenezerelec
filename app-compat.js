@@ -155,12 +155,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (addScheduleToggle) {
         addScheduleToggle.addEventListener('change', function() {
             scheduleFields.style.display = this.checked ? 'block' : 'none';
-            // 토글 켜면 작업일을 일정 날짜 기본값으로
+            // 토글 켜면 작업일을 일정 시작일 기본값으로
             if (this.checked) {
                 const dateVal = document.getElementById('date').value;
-                const scheduleDateInput = document.getElementById('scheduleDate');
-                if (dateVal && scheduleDateInput) {
-                    scheduleDateInput.value = dateVal;
+                const scheduleStartDateInput = document.getElementById('scheduleStartDate');
+                if (dateVal && scheduleStartDateInput) {
+                    scheduleStartDateInput.value = dateVal;
                 }
             }
         });
@@ -270,10 +270,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 일정 토글이 켜져 있으면 필수 필드 검증
         if (isScheduleOn) {
-            const sDate = document.getElementById('scheduleDate').value;
+            const sDate = document.getElementById('scheduleStartDate').value;
             const sTime = document.getElementById('scheduleStartTime').value;
             if (!sDate || !sTime) {
-                alert('⚠️ 작업 일정의 예정일과 시작 시간을 입력해주세요.');
+                alert('⚠️ 작업 일정의 시작일과 시작 시간을 입력해주세요.');
                 return;
             }
         }
@@ -311,6 +311,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // 일정 동시 저장
             if (isScheduleOn && !currentEditId) {
+                const startDate = document.getElementById('scheduleStartDate').value;
+                const endDate = document.getElementById('scheduleEndDate').value || startDate;
                 const scheduleData = {
                     customerName: transactionData.customerName,
                     phone: transactionData.phone,
@@ -318,7 +320,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     detailedLocation: transactionData.detailedLocation,
                     serviceType: transactionData.serviceType,
                     workContent: transactionData.content,
-                    date: document.getElementById('scheduleDate').value,
+                    date: startDate,
+                    startDate: startDate,
+                    endDate: endDate,
                     startTime: document.getElementById('scheduleStartTime').value,
                     endTime: document.getElementById('scheduleEndTime').value || '',
                     materials: document.getElementById('scheduleMaterials').value || '',
@@ -1220,11 +1224,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (dow === 0) cls += ' sunday';
             if (dow === 6) cls += ' saturday';
 
-            const daySchedules = allSchedules.filter(s => s.date === dateStr);
+            const daySchedules = allSchedules.filter(s => {
+                const sStart = s.startDate || s.date;
+                const sEnd = s.endDate || sStart;
+                return dateStr >= sStart && dateStr <= sEnd;
+            });
             let schHtml = '<div class="calendar-day-schedules">';
             daySchedules.slice(0, 2).forEach(s => {
                 const sCls = s.status === 'completed' ? ' completed' : '';
-                schHtml += `<div class="calendar-schedule-dot${sCls}">${s.startTime ? s.startTime.substring(0,5) : ''} ${s.customerName}</div>`;
+                const sStart = s.startDate || s.date;
+                const sEnd = s.endDate || sStart;
+                const isMulti = sStart !== sEnd;
+                const dotCls = isMulti ? ' multi-day' : '';
+                const timeLabel = (dateStr === sStart && s.startTime) ? s.startTime.substring(0,5) + ' ' : '';
+                schHtml += `<div class="calendar-schedule-dot${sCls}${dotCls}">${timeLabel}${s.customerName}</div>`;
             });
             if (daySchedules.length > 2) {
                 schHtml += `<div class="calendar-more-count">+${daySchedules.length - 2}건</div>`;
@@ -1259,7 +1272,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const listEl = document.getElementById('scheduleList');
         if (!section || !listEl) return;
 
-        const daySchedules = allSchedules.filter(s => s.date === dateStr);
+        const daySchedules = allSchedules.filter(s => {
+            const sStart = s.startDate || s.date;
+            const sEnd = s.endDate || sStart;
+            return dateStr >= sStart && dateStr <= sEnd;
+        });
         const d = new Date(dateStr + 'T00:00:00');
         const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
         const fDate = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${weekDays[d.getDay()]})`;
@@ -1282,9 +1299,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const timeStr = s.startTime ? s.startTime.substring(0, 5) : '';
             const endStr = s.endTime ? ` ~ ${s.endTime.substring(0, 5)}` : '';
             const cCls = s.status === 'completed' ? ' completed' : '';
+            const sStart = s.startDate || s.date;
+            const sEnd = s.endDate || sStart;
+            const isMulti = sStart !== sEnd;
+            const periodBadge = isMulti ? `<span style="background:#fff3e0;color:#ff9800;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600;margin-left:8px;">📅 ${sStart} ~ ${sEnd}</span>` : '';
             return `<div class="schedule-item${cCls}" onclick="openScheduleDetailModal('${s.id}')">
                 <div class="schedule-item-header">
-                    <div class="schedule-item-time">🕐 ${timeStr}${endStr}</div>
+                    <div class="schedule-item-time">🕐 ${timeStr}${endStr}${periodBadge}</div>
                     <div class="schedule-item-service">${s.serviceType}</div>
                 </div>
                 <div class="schedule-item-body">
@@ -1336,6 +1357,13 @@ document.addEventListener('DOMContentLoaded', function() {
             ? `<div style="margin-top:5px;"><span class="linked-transaction-badge" onclick="goToLinkedTransaction('${schedule.linkedTransactionId}')">🔗 연결된 거래 보기</span></div>` 
             : '';
 
+        const sStart = schedule.startDate || schedule.date;
+        const sEnd = schedule.endDate || sStart;
+        const isMultiDay = sStart !== sEnd;
+        const periodStr = isMultiDay ? `${sStart} ~ ${sEnd}` : sStart;
+        const daysCount = isMultiDay ? Math.ceil((new Date(sEnd) - new Date(sStart)) / (1000*60*60*24)) + 1 : 1;
+        const periodBadge = isMultiDay ? ` <span style="background:#fff3e0;color:#ff9800;padding:2px 8px;border-radius:10px;font-size:0.85em;font-weight:600;">${daysCount}일간</span>` : '';
+
         content.innerHTML = `
             <div class="detail-section">
                 <div class="detail-section-title">상태</div>
@@ -1351,7 +1379,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="detail-section">
                 <div class="detail-section-title">일정 정보</div>
                 <div class="detail-grid">
-                    <div class="detail-item-box"><div class="detail-item-label">작업 날짜</div><div class="detail-item-value">${schedule.date}</div></div>
+                    <div class="detail-item-box"><div class="detail-item-label">작업 기간</div><div class="detail-item-value">${periodStr}${periodBadge}</div></div>
                     <div class="detail-item-box"><div class="detail-item-label">작업 시간</div><div class="detail-item-value">${timeStr} ~ ${endTimeStr}</div></div>
                     <div class="detail-item-box"><div class="detail-item-label">위치</div><div class="detail-item-value">${schedule.location} ${schedule.detailedLocation || ''}</div></div>
                     <div class="detail-item-box"><div class="detail-item-label">서비스 유형</div><div class="detail-item-value">${schedule.serviceType}</div></div>
@@ -1439,7 +1467,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         currentScheduleEditId = id;
 
-        document.getElementById('editSchDate').value = schedule.date || '';
+        const sStart = schedule.startDate || schedule.date || '';
+        const sEnd = schedule.endDate || '';
+        document.getElementById('editSchStartDate').value = sStart;
+        document.getElementById('editSchEndDate').value = (sEnd && sEnd !== sStart) ? sEnd : '';
         document.getElementById('editSchStartTime').value = schedule.startTime || '';
         document.getElementById('editSchEndTime').value = schedule.endTime || '';
         document.getElementById('editSchServiceType').value = schedule.serviceType || '';
@@ -1479,8 +1510,12 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             if (!currentScheduleEditId) return;
 
+            const startDate = document.getElementById('editSchStartDate').value;
+            const endDate = document.getElementById('editSchEndDate').value || startDate;
             const updateData = {
-                date: document.getElementById('editSchDate').value,
+                date: startDate,
+                startDate: startDate,
+                endDate: endDate,
                 startTime: document.getElementById('editSchStartTime').value,
                 endTime: document.getElementById('editSchEndTime').value || '',
                 serviceType: document.getElementById('editSchServiceType').value,
