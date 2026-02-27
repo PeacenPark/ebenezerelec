@@ -2091,11 +2091,23 @@ body {
 }
 
 @media (max-width: 768px) {
-    .invoice-doc { padding: 20px; }
-    .invoice-doc-title { font-size: 22px; letter-spacing: 4px; }
-    .invoice-info-table th { width: 60px; font-size: 11px; padding: 6px 8px; }
-    .invoice-info-table td { font-size: 11px; padding: 6px 8px; }
-    .invoice-items-table { font-size: 11px; }
+    .invoice-doc { padding: 30px; }
+    .invoice-doc-title { font-size: 24px; letter-spacing: 5px; }
+    .invoice-info-table th { width: 70px; min-width: 70px; max-width: 70px; font-size: 12px; padding: 6px 8px; }
+    .invoice-info-table td { font-size: 12px; padding: 6px 8px; }
+    .invoice-items-table { font-size: 12px; }
+}
+
+@media (max-width: 480px) {
+    #invoicePreviewArea {
+        padding: 10px !important;
+        overflow: hidden;
+    }
+    #invoicePreviewModal .modal-content {
+        padding: 0;
+        margin: 5px;
+        max-height: 95vh;
+    }
 }
 
 /* 저장된 명세서 목록 */

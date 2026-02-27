@@ -2049,25 +2049,25 @@ document.addEventListener('DOMContentLoaded', function() {
         const tfootHtml = includeVat
             ? `<tr>
                 <td colspan="4" style="text-align:center;font-weight:bold;">공급가액</td>
-                <td style="font-size:14px;">₩${supplyAmount.toLocaleString()}</td>
+                <td style="font-size:14px;">₩ ${supplyAmount.toLocaleString()}</td>
                </tr>
                <tr>
                 <td colspan="4" style="text-align:center;font-weight:bold;">부가세 (10%)</td>
-                <td style="font-size:14px;">₩${vat.toLocaleString()}</td>
+                <td style="font-size:14px;">₩ ${vat.toLocaleString()}</td>
                </tr>
                <tr style="background:#f0f0f0;">
                 <td colspan="4" style="text-align:center;font-weight:bold;font-size:15px;">합 계</td>
-                <td style="font-size:16px;font-weight:bold;">₩${finalTotal.toLocaleString()}</td>
+                <td style="font-size:16px;font-weight:bold;">₩ ${finalTotal.toLocaleString()}</td>
                </tr>`
             : `<tr>
                 <td colspan="4" style="text-align:center;font-weight:bold;">합 계</td>
-                <td style="font-size:15px;">₩${grandTotal.toLocaleString()}</td>
+                <td style="font-size:15px;">₩ ${grandTotal.toLocaleString()}</td>
                </tr>`;
 
         // 총 금액 행
         const totalRowHtml = includeVat
-            ? `총 금액 : ₩${finalTotal.toLocaleString()}`
-            : `총 금액 : ₩${grandTotal.toLocaleString()}`;
+            ? `총 금액 : ₩ ${finalTotal.toLocaleString()}`
+            : `총 금액 : ₩ ${grandTotal.toLocaleString()}`;
 
         const html = `
             <div class="invoice-doc" id="invoiceDocContent">
@@ -2079,7 +2079,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <table class="invoice-info-table">
                             <tr><th colspan="2" style="text-align:center;background:${isEstimate ? '#fff3e0' : '#e3f2fd'};">공급자</th></tr>
                             <tr><th>상 호</th><td>${supplier.name}</td></tr>
-                            <tr><th>대표자</th><td>${supplier.ceo}</td></tr>
+                            <tr><th>대표자</th><td style="position:relative;">${supplier.ceo}<span style="position:absolute;right:30px;top:50%;transform:translateY(-50%);display:inline-block;color:#ccc;">(인)<img src="${STAMP_IMG}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:auto;opacity:1;" alt="직인"></span></td></tr>
                             <tr><th>사업자번호</th><td>${supplier.bizNo}</td></tr>
                             <tr><th>주 소</th><td>${supplier.addr}</td></tr>
                             <tr><th>연락처</th><td>${supplier.tel}</td></tr>
@@ -2088,7 +2088,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div style="flex:1;">
                         <table class="invoice-info-table">
                             <tr><th colspan="2" style="text-align:center;background:#f5f5f5;">공급받는자</th></tr>
-                            <tr><th>상 호</th><td>${client.name}</td></tr>
+                            <tr><th>상호(이름)</th><td style="position:relative;">${client.name}<span style="position:absolute;right:30px;top:50%;transform:translateY(-50%);color:#ccc;">(인)</span></td></tr>
                             <tr><th>연락처</th><td>${client.tel}</td></tr>
                             <tr><th>주 소</th><td>${client.addr}</td></tr>
                             <tr><th colspan="2" style="text-align:center;padding:14px;font-size:12px;color:#999;">아래와 같이 ${isEstimate ? '견적' : '거래 내역을 명세'}합니다.</th></tr>
@@ -2114,20 +2114,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="invoice-total-row">${totalRowHtml}</div>
 
                 ${notes ? `<div class="invoice-notes"><strong>비고</strong><br><span style="font-size:15px;font-weight:700;color:#333;">${notes.replace(/\n/g, '<br>')}</span></div>` : ''}
-
-                <div class="invoice-footer">
-                    <div class="invoice-stamp-area" style="position:relative;">
-                        <div class="stamp-label" style="padding-top:50px;color:#ccc;">공급자 (인)</div>
-                        <img src="${STAMP_IMG}" style="position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);width:130px;height:auto;opacity:1;" alt="직인">
-                    </div>
-                    <div class="invoice-stamp-area">
-                        <div class="stamp-label" style="padding-top:50px;color:#ccc;">공급받는자 (인)</div>
-                    </div>
-                </div>
             </div>
         `;
 
         document.getElementById('invoicePreviewArea').innerHTML = html;
+
+        // 모바일에서 PC와 동일한 레이아웃으로 축소 표시
+        if (window.innerWidth < 768) {
+            const previewArea = document.getElementById('invoicePreviewArea');
+            const docEl = document.getElementById('invoiceDocContent');
+            if (docEl) {
+                const areaWidth = previewArea.clientWidth - 20;
+                const docWidth = 720;
+                const scale = Math.min(1, areaWidth / docWidth);
+                docEl.style.width = docWidth + 'px';
+                docEl.style.minWidth = docWidth + 'px';
+                docEl.style.transform = `scale(${scale})`;
+                docEl.style.transformOrigin = 'top left';
+                // 축소된 높이에 맞춰 컨테이너 조정
+                setTimeout(() => {
+                    const scaledHeight = docEl.offsetHeight * scale;
+                    previewArea.style.height = (scaledHeight + 20) + 'px';
+                }, 100);
+            }
+        }
 
         // 작성 모달 숨기고 미리보기 열기 (닫지 않음)
         invoiceFormModal.classList.remove('show');
@@ -2229,7 +2239,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     .invoice-info-table td { width:auto; font-size:12px; padding:7px 8px; word-break:break-all; }
                     .invoice-items-table { table-layout:auto; width:100%; }
                     .invoice-stamp-area { position:relative; }
-                    .invoice-stamp-area img { position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);width:130px;height:auto;opacity:1; }
+                    .invoice-stamp-area img { width:110px;height:auto;opacity:1; }
                 `;
                 offscreen.appendChild(style);
 
