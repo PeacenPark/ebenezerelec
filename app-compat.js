@@ -2339,10 +2339,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const trimW = right - left + 1;
         const trimH = bottom - top + 1;
 
-        // 사방 여백 추가 (실제 이미지 픽셀 기준)
+        // A4 비율 (1 : 1.414)
+        const a4Ratio = 1.414;
         const pad = 150;
-        const finalW = trimW + pad * 2;
-        const finalH = trimH + pad * 2;
+        const contentW = trimW + pad * 2;
+        const contentH = trimH + pad * 2;
+
+        let finalW, finalH;
+        if (contentH / contentW > a4Ratio) {
+            // 세로가 더 긴 경우 → 세로 기준으로 가로 맞춤
+            finalH = contentH;
+            finalW = Math.round(finalH / a4Ratio);
+        } else {
+            // 가로가 더 넓은 경우 → 가로 기준으로 세로 맞춤
+            finalW = contentW;
+            finalH = Math.round(finalW * a4Ratio);
+        }
 
         const trimmed = document.createElement('canvas');
         trimmed.width = finalW;
@@ -2350,8 +2362,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const tCtx = trimmed.getContext('2d');
         tCtx.fillStyle = '#ffffff';
         tCtx.fillRect(0, 0, finalW, finalH);
-        // 내용을 중앙에 배치 (pad만큼 오프셋)
-        tCtx.drawImage(canvas, left, top, trimW, trimH, pad, pad, trimW, trimH);
+        // 내용을 상단 중앙에 배치
+        const offsetX = Math.round((finalW - trimW) / 2);
+        const offsetY = pad;
+        tCtx.drawImage(canvas, left, top, trimW, trimH, offsetX, offsetY, trimW, trimH);
         return trimmed;
     }
 
