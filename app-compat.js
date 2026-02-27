@@ -2119,30 +2119,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
         document.getElementById('invoicePreviewArea').innerHTML = html;
 
-        // 모바일에서 PC와 동일한 레이아웃으로 축소 표시
-        if (window.innerWidth < 768) {
-            const previewArea = document.getElementById('invoicePreviewArea');
-            const docEl = document.getElementById('invoiceDocContent');
-            if (docEl) {
-                const areaWidth = previewArea.clientWidth - 20;
-                const docWidth = 720;
-                const scale = Math.min(1, areaWidth / docWidth);
-                docEl.style.width = docWidth + 'px';
-                docEl.style.minWidth = docWidth + 'px';
-                docEl.style.transform = `scale(${scale})`;
-                docEl.style.transformOrigin = 'top left';
-                // 축소된 높이에 맞춰 컨테이너 조정
-                setTimeout(() => {
-                    const scaledHeight = docEl.offsetHeight * scale;
-                    previewArea.style.height = (scaledHeight + 20) + 'px';
-                }, 100);
-            }
-        }
-
         // 작성 모달 숨기고 미리보기 열기 (닫지 않음)
         invoiceFormModal.classList.remove('show');
         invoicePreviewModal.classList.add('show');
         document.body.style.overflow = 'hidden';
+
+        // 모바일에서 PC와 동일한 레이아웃으로 축소 표시 (모달 열린 후 실행)
+        if (window.innerWidth < 768) {
+            setTimeout(() => {
+                const previewArea = document.getElementById('invoicePreviewArea');
+                const docEl = document.getElementById('invoiceDocContent');
+                if (docEl && previewArea) {
+                    const areaWidth = previewArea.clientWidth - 20;
+                    const docWidth = 720;
+                    const scale = Math.min(1, areaWidth / docWidth);
+                    docEl.style.width = docWidth + 'px';
+                    docEl.style.minWidth = docWidth + 'px';
+                    docEl.style.transform = `scale(${scale})`;
+                    docEl.style.transformOrigin = 'top left';
+                    // 축소된 높이에 맞춰 래퍼 설정
+                    const scaledHeight = docEl.offsetHeight * scale;
+                    previewArea.style.minHeight = (scaledHeight + 20) + 'px';
+                }
+            }, 50);
+        }
     }
 
     function closeInvoicePreviewModal() {

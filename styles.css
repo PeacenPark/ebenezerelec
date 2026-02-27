@@ -2101,7 +2101,7 @@ body {
 @media (max-width: 480px) {
     #invoicePreviewArea {
         padding: 10px !important;
-        overflow: hidden;
+        overflow: auto;
     }
     #invoicePreviewModal .modal-content {
         padding: 0;
