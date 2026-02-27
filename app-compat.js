@@ -2202,29 +2202,83 @@ document.addEventListener('DOMContentLoaded', function() {
     // 이미지 저장
     const saveInvoiceImgBtn = document.getElementById('saveInvoiceImgBtn');
     if (saveInvoiceImgBtn) {
-        saveInvoiceImgBtn.addEventListener('click', function() {
+        saveInvoiceImgBtn.addEventListener('click', async function() {
             const target = document.getElementById('invoiceDocContent');
             if (!target || typeof html2canvas === 'undefined') {
                 alert('이미지 저장 기능을 사용할 수 없습니다.');
                 return;
             }
 
-            html2canvas(target, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff'
-            }).then(canvas => {
-                const link = document.createElement('a');
+            saveInvoiceImgBtn.disabled = true;
+            saveInvoiceImgBtn.textContent = '⏳ 생성중...';
+
+            try {
+                // PC와 동일한 레이아웃으로 캡처하기 위해 숨겨진 고정폭 컨테이너 사용
+                const offscreen = document.createElement('div');
+                offscreen.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;z-index:-1;background:white;';
+                offscreen.innerHTML = target.outerHTML;
+                document.body.appendChild(offscreen);
+
+                // 스타일 재적용 (인라인 스타일은 복제되지만 클래스 스타일 보강)
+                const style = document.createElement('style');
+                style.textContent = getInvoicePrintCSS() + `
+                    .invoice-doc { width:760px; padding:30px 20px; font-family:'Malgun Gothic','맑은 고딕',sans-serif; box-sizing:border-box; }
+                    .invoice-doc * { box-sizing:border-box; }
+                    .invoice-info-table { table-layout:fixed; }
+                    .invoice-items-table { table-layout:fixed; }
+                    .invoice-stamp-area { position:relative; }
+                    .invoice-stamp-area img { position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);width:130px;height:auto;opacity:1; }
+                `;
+                offscreen.appendChild(style);
+
+                const canvas = await html2canvas(offscreen, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    width: 800,
+                    windowWidth: 800
+                });
+
+                document.body.removeChild(offscreen);
+
                 const docType = document.querySelector('input[name="invoiceType"]:checked').value;
                 const clientName = document.getElementById('invClientName').value || '고객';
                 const today = new Date().toISOString().split('T')[0];
-                link.download = `${docType}_${clientName}_${today}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            }).catch(err => {
+                const fileName = `${docType}_${clientName}_${today}.png`;
+
+                // 모바일: Web Share API로 바로 사진 공유/저장
+                if (navigator.share && /Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+                    canvas.toBlob(async function(blob) {
+                        try {
+                            const file = new File([blob], fileName, { type: 'image/png' });
+                            await navigator.share({
+                                files: [file],
+                                title: fileName
+                            });
+                        } catch (shareErr) {
+                            // 공유 취소 또는 미지원 시 다운로드 폴백
+                            downloadCanvas(canvas, fileName);
+                        }
+                    }, 'image/png');
+                } else {
+                    // PC: 기존 다운로드 방식
+                    downloadCanvas(canvas, fileName);
+                }
+
+            } catch (err) {
                 alert('이미지 생성 중 오류: ' + err.message);
-            });
+            } finally {
+                saveInvoiceImgBtn.disabled = false;
+                saveInvoiceImgBtn.textContent = '📷 이미지 저장';
+            }
         });
+    }
+
+    function downloadCanvas(canvas, fileName) {
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
     }
 
     // ========================================
