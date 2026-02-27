@@ -1082,13 +1082,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const detailActionsEl = detailModal.querySelector('.detail-actions');
         if (transaction.paymentStatus === 'unpaid') {
             detailActionsEl.innerHTML = `
-                <button class="btn-action btn-complete-action" id="markPaidBtn">💰 정산완료 처리</button>
+                <button class="btn-action btn-complete-action" id="markPaidBtn">💰 정산완료</button>
+                <button class="btn-action" style="background:#2196F3;color:white;" id="invoiceBtn">📄 명세서</button>
                 <button class="btn-action btn-edit-action" id="editDetailBtn">✏️ 수정</button>
                 <button class="btn-action btn-delete-action" id="deleteDetailBtn">🗑️ 삭제</button>
             `;
         } else {
             detailActionsEl.innerHTML = `
-                <button class="btn-action" style="background:#ff9800;color:white;" id="markUnpaidBtn">🔴 미수금으로 변경</button>
+                <button class="btn-action" style="background:#ff9800;color:white;" id="markUnpaidBtn">🔴 미수금</button>
+                <button class="btn-action" style="background:#2196F3;color:white;" id="invoiceBtn">📄 명세서</button>
                 <button class="btn-action btn-edit-action" id="editDetailBtn">✏️ 수정</button>
                 <button class="btn-action btn-delete-action" id="deleteDetailBtn">🗑️ 삭제</button>
             `;
@@ -1137,6 +1139,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     const idToDelete = currentDetailId;
                     closeDetailModal();
                     deleteTransaction(idToDelete);
+                }
+            });
+        }
+
+        // 명세서 버튼
+        const invoiceBtn = document.getElementById('invoiceBtn');
+        if (invoiceBtn) {
+            invoiceBtn.addEventListener('click', function() {
+                if (currentDetailId) {
+                    const idForInvoice = currentDetailId;
+                    closeDetailModal();
+                    openInvoiceFormModal(idForInvoice);
                 }
             });
         }
@@ -1389,8 +1403,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="detail-section-title">작업 내용</div>
                 <div class="detail-full">${schedule.workContent || '-'}</div>
             </div>
-            ${schedule.materials ? `<div class="detail-section"><div class="detail-section-title">🔧 필요 자재</div><div class="materials-list">${schedule.materials}</div></div>` : ''}
-            ${schedule.scheduleNotes ? `<div class="detail-section"><div class="detail-section-title">일정 메모</div><div class="detail-full">${schedule.scheduleNotes}</div></div>` : ''}
+            ${schedule.materials ? `<div class="detail-section"><div class="detail-section-title">🔧 필요 자재</div><div class="materials-list">${schedule.materials}</div></span></div>` : ''}
+            ${schedule.scheduleNotes ? `<div class="detail-section"><div class="detail-section-title">일정 메모</div><div class="detail-full">${schedule.scheduleNotes}</div></span></div>` : ''}
         `;
 
         // 버튼 업데이트
@@ -1814,7 +1828,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="detail-section-title">운영비 내용</div>
                 <div class="detail-full">${expense.description}</div>
             </div>
-            ${expense.notes ? `<div class="detail-section"><div class="detail-section-title">비고</div><div class="detail-full">${expense.notes}</div></div>` : ''}
+            ${expense.notes ? `<div class="detail-section"><div class="detail-section-title">비고</div><div class="detail-full">${expense.notes}</div></span></div>` : ''}
         `;
 
         // 버튼 이벤트
@@ -1872,8 +1886,546 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ========================================
-    // 초기화
+    // 거래명세서 / 견적서 기능
     // ========================================
+    const invoiceFormModal = document.getElementById('invoiceFormModal');
+    const closeInvoiceFormBtn = document.getElementById('closeInvoiceFormBtn');
+    const invoicePreviewModal = document.getElementById('invoicePreviewModal');
+    const closeInvoicePreviewBtn = document.getElementById('closeInvoicePreviewBtn');
+    const closePreviewBtn2 = document.getElementById('closePreviewBtn2');
+    let currentInvoiceTransactionId = null;
+
+    // 명세서 작성 모달 열기
+    function openInvoiceFormModal(transactionId) {
+        const transaction = allTransactions.find(t => t.id === transactionId);
+        if (!transaction) return;
+
+        currentInvoiceTransactionId = transactionId;
+
+        // 거래 데이터를 자동 채우기
+        document.getElementById('invClientName').value = transaction.customerName || '';
+        document.getElementById('invClientTel').value = transaction.phone || '';
+        document.getElementById('invClientAddr').value = (transaction.location || '') + ' ' + (transaction.detailedLocation || '');
+
+        // 품목 초기화 - 작업 내용을 첫번째 품목으로
+        const container = document.getElementById('invoiceItemsContainer');
+        container.innerHTML = '';
+        addInvoiceItem(transaction.content || transaction.serviceType || '', 1, transaction.totalCost || 0);
+
+        // 비고 - 기본값(계좌) + 거래 비고
+        const defaultNotes = '계좌번호 : 국민 806801-01-334721 (변경남)';
+        const txNotes = transaction.notes || '';
+        document.getElementById('invNotes').value = txNotes ? defaultNotes + '\n' + txNotes : defaultNotes;
+
+        invoiceFormModal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeInvoiceFormModal() {
+        if (invoiceFormModal) {
+            invoiceFormModal.classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    if (closeInvoiceFormBtn) {
+        closeInvoiceFormBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            closeInvoiceFormModal();
+        });
+    }
+
+    window.addEventListener('click', function(event) {
+        if (event.target === invoiceFormModal) closeInvoiceFormModal();
+        if (event.target === invoicePreviewModal) closeInvoicePreviewModal();
+    });
+
+    // 품목 추가
+    let invoiceItemIdx = 0;
+    function addInvoiceItem(name, qty, price) {
+        const container = document.getElementById('invoiceItemsContainer');
+        const row = document.createElement('div');
+        row.className = 'invoice-item-row';
+        row.dataset.idx = invoiceItemIdx++;
+        row.innerHTML = `
+            <button type="button" class="btn-remove-item" onclick="this.parentElement.remove()">✕</button>
+            <div class="form-row">
+                <div class="form-group" style="flex:3;">
+                    <label>품목명</label>
+                    <input type="text" class="inv-item-name" placeholder="품목명" value="${name || ''}">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>수량</label>
+                    <input type="number" class="inv-item-qty" value="${qty || 1}" min="1">
+                </div>
+                <div class="form-group" style="flex:2;">
+                    <label>단가</label>
+                    <input type="number" class="inv-item-price" min="0" value="${price || 0}">
+                </div>
+            </div>`;
+        container.appendChild(row);
+    }
+
+    const addInvoiceItemBtn = document.getElementById('addInvoiceItemBtn');
+    if (addInvoiceItemBtn) {
+        addInvoiceItemBtn.addEventListener('click', function() {
+            addInvoiceItem('', 1, 0);
+        });
+    }
+
+    // 미리보기
+    const previewInvoiceBtn = document.getElementById('previewInvoiceBtn');
+    if (previewInvoiceBtn) {
+        previewInvoiceBtn.addEventListener('click', function() {
+            generateInvoicePreview();
+        });
+    }
+
+    const STAMP_IMG = 'data:image/png;base64,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';
+
+    function generateInvoicePreview() {
+        const docType = document.querySelector('input[name="invoiceType"]:checked').value;
+        const isEstimate = docType === '견적서';
+        const typeCls = isEstimate ? 'estimate' : 'statement';
+        const includeVat = document.getElementById('invIncludeVat').checked;
+
+        // 공급자 정보
+        const supplier = {
+            name: document.getElementById('invSupplierName').value || '',
+            ceo: document.getElementById('invSupplierCeo').value || '',
+            addr: document.getElementById('invSupplierAddr').value || '',
+            bizNo: document.getElementById('invSupplierBizNo').value || '',
+            tel: document.getElementById('invSupplierTel').value || ''
+        };
+
+        // 공급받는자 정보
+        const client = {
+            name: document.getElementById('invClientName').value || '',
+            tel: document.getElementById('invClientTel').value || '',
+            addr: document.getElementById('invClientAddr').value || ''
+        };
+
+        // 품목 수집
+        const itemRows = document.querySelectorAll('.invoice-item-row');
+        const items = [];
+        let grandTotal = 0;
+        itemRows.forEach((row, idx) => {
+            const name = row.querySelector('.inv-item-name').value || '';
+            const qty = parseInt(row.querySelector('.inv-item-qty').value) || 0;
+            const price = parseInt(row.querySelector('.inv-item-price').value) || 0;
+            const amount = qty * price;
+            if (name) {
+                items.push({ no: idx + 1, name, qty, price, amount });
+                grandTotal += amount;
+            }
+        });
+
+        const notes = document.getElementById('invNotes').value || '';
+        const today = new Date();
+        const dateStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
+        const docNo = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*1000)).padStart(3,'0')}`;
+
+        // VAT 계산: 현금가(grandTotal) 기준, 체크 시 10% 추가
+        const supplyAmount = grandTotal; // 공급가 = 현금가 그대로
+        const vat = includeVat ? Math.round(grandTotal * 0.1) : 0;
+        const finalTotal = includeVat ? grandTotal + vat : grandTotal;
+
+        // 빈 행 추가 (최소 5행)
+        while (items.length < 5) {
+            items.push({ no: '', name: '', qty: '', price: '', amount: '' });
+        }
+
+        const itemsHtml = items.map(item => `
+            <tr>
+                <td>${item.no}</td>
+                <td>${item.name}</td>
+                <td>${item.qty !== '' ? item.qty : ''}</td>
+                <td>${item.price !== '' ? Number(item.price).toLocaleString() : ''}</td>
+                <td>${item.amount !== '' ? Number(item.amount).toLocaleString() : ''}</td>
+            </tr>
+        `).join('');
+
+        // 합계 tfoot
+        const tfootHtml = includeVat
+            ? `<tr>
+                <td colspan="4" style="text-align:center;font-weight:bold;">공급가액</td>
+                <td style="font-size:14px;">₩${supplyAmount.toLocaleString()}</td>
+               </tr>
+               <tr>
+                <td colspan="4" style="text-align:center;font-weight:bold;">부가세 (10%)</td>
+                <td style="font-size:14px;">₩${vat.toLocaleString()}</td>
+               </tr>
+               <tr style="background:#f0f0f0;">
+                <td colspan="4" style="text-align:center;font-weight:bold;font-size:15px;">합 계</td>
+                <td style="font-size:16px;font-weight:bold;">₩${finalTotal.toLocaleString()}</td>
+               </tr>`
+            : `<tr>
+                <td colspan="4" style="text-align:center;font-weight:bold;">합 계</td>
+                <td style="font-size:15px;">₩${grandTotal.toLocaleString()}</td>
+               </tr>`;
+
+        // 총 금액 행
+        const totalRowHtml = includeVat
+            ? `총 금액 : ₩${finalTotal.toLocaleString()}`
+            : `총 금액 : ₩${grandTotal.toLocaleString()}`;
+
+        const html = `
+            <div class="invoice-doc" id="invoiceDocContent">
+                <div class="invoice-doc-title ${typeCls}">${docType}</div>
+                <div class="invoice-doc-no">No. ${docNo} &nbsp;|&nbsp; ${dateStr}</div>
+
+                <div style="display:flex;gap:15px;margin-bottom:20px;">
+                    <div style="flex:1;">
+                        <table class="invoice-info-table">
+                            <tr><th colspan="2" style="text-align:center;background:${isEstimate ? '#fff3e0' : '#e3f2fd'};">공급자</th></tr>
+                            <tr><th>상 호</th><td>${supplier.name}</td></tr>
+                            <tr><th>대표자</th><td>${supplier.ceo}</td></tr>
+                            <tr><th>사업자번호</th><td>${supplier.bizNo}</td></tr>
+                            <tr><th>주 소</th><td>${supplier.addr}</td></tr>
+                            <tr><th>연락처</th><td>${supplier.tel}</td></tr>
+                        </table>
+                    </div>
+                    <div style="flex:1;">
+                        <table class="invoice-info-table">
+                            <tr><th colspan="2" style="text-align:center;background:#f5f5f5;">공급받는자</th></tr>
+                            <tr><th>상 호</th><td>${client.name}</td></tr>
+                            <tr><th>연락처</th><td>${client.tel}</td></tr>
+                            <tr><th>주 소</th><td>${client.addr}</td></tr>
+                            <tr><th colspan="2" style="text-align:center;padding:14px;font-size:12px;color:#999;">아래와 같이 ${isEstimate ? '견적' : '거래 내역을 명세'}합니다.</th></tr>
+                            <tr><th></th><td></td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <table class="invoice-items-table ${typeCls}">
+                    <thead>
+                        <tr>
+                            <th style="width:40px;">No</th>
+                            <th>품 목</th>
+                            <th style="width:60px;">수량</th>
+                            <th style="width:100px;">단가</th>
+                            <th style="width:120px;">금액</th>
+                        </tr>
+                    </thead>
+                    <tbody>${itemsHtml}</tbody>
+                    <tfoot>${tfootHtml}</tfoot>
+                </table>
+
+                <div class="invoice-total-row">${totalRowHtml}</div>
+
+                ${notes ? `<div class="invoice-notes"><strong>비고</strong><br><span style="font-size:15px;font-weight:700;color:#333;">${notes.replace(/\n/g, '<br>')}</span></div>` : ''}
+
+                <div class="invoice-footer">
+                    <div class="invoice-stamp-area" style="position:relative;">
+                        <div class="stamp-label" style="padding-top:50px;color:#ccc;">공급자 (인)</div>
+                        <img src="${STAMP_IMG}" style="position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);width:130px;height:auto;opacity:1;" alt="직인">
+                    </div>
+                    <div class="invoice-stamp-area">
+                        <div class="stamp-label" style="padding-top:50px;color:#ccc;">공급받는자 (인)</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('invoicePreviewArea').innerHTML = html;
+
+        // 작성 모달 숨기고 미리보기 열기 (닫지 않음)
+        invoiceFormModal.classList.remove('show');
+        invoicePreviewModal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeInvoicePreviewModal() {
+        if (invoicePreviewModal) {
+            invoicePreviewModal.classList.remove('show');
+            // 작성 모달 다시 보이기
+            invoiceFormModal.classList.add('show');
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    if (closeInvoicePreviewBtn) {
+        closeInvoicePreviewBtn.addEventListener('click', function(e) { e.preventDefault(); closeInvoicePreviewModal(); });
+    }
+    if (closePreviewBtn2) {
+        closePreviewBtn2.addEventListener('click', function(e) { e.preventDefault(); closeInvoicePreviewModal(); });
+    }
+
+    // 인쇄
+    const printInvoiceBtn = document.getElementById('printInvoiceBtn');
+    if (printInvoiceBtn) {
+        printInvoiceBtn.addEventListener('click', function() {
+            const content = document.getElementById('invoiceDocContent');
+            if (!content) return;
+
+            const printWin = window.open('', '_blank', 'width=800,height=1000');
+            printWin.document.write(`
+                <html><head><title>인쇄</title>
+                <style>
+                    body { margin: 0; padding: 20px; font-family: 'Malgun Gothic','맑은 고딕',sans-serif; }
+                    ${getInvoicePrintCSS()}
+                </style></head>
+                <body>${content.outerHTML}</body></html>
+            `);
+            printWin.document.close();
+            printWin.focus();
+            setTimeout(() => { printWin.print(); printWin.close(); }, 300);
+        });
+    }
+
+    function getInvoicePrintCSS() {
+        return `
+            .invoice-doc { max-width:100%; padding:20px; }
+            .invoice-doc-title { text-align:center; font-size:28px; font-weight:bold; letter-spacing:8px; padding-bottom:15px; border-bottom:3px double #333; margin-bottom:25px; }
+            .invoice-doc-title.estimate { color:#e65100; border-bottom-color:#e65100; }
+            .invoice-doc-title.statement { color:#1565C0; border-bottom-color:#1565C0; }
+            .invoice-doc-no { text-align:right; font-size:12px; color:#666; margin-bottom:20px; }
+            .invoice-info-table { width:100%; border-collapse:collapse; font-size:13px; }
+            .invoice-info-table th { background:#f5f5f5; padding:8px 12px; text-align:left; font-weight:600; border:1px solid #ddd; width:80px; }
+            .invoice-info-table td { padding:8px 12px; border:1px solid #ddd; }
+            .invoice-items-table { width:100%; border-collapse:collapse; font-size:13px; }
+            .invoice-items-table thead th { background:#37474f; color:white; padding:10px 8px; text-align:center; border:1px solid #37474f; }
+            .invoice-items-table.estimate thead th { background:#e65100; border-color:#e65100; }
+            .invoice-items-table.statement thead th { background:#1565C0; border-color:#1565C0; }
+            .invoice-items-table tbody td { padding:9px 8px; border:1px solid #ddd; text-align:center; }
+            .invoice-items-table tbody td:nth-child(2) { text-align:left; }
+            .invoice-items-table tfoot td { padding:12px 8px; border:1px solid #ddd; font-weight:bold; text-align:center; background:#fafafa; }
+            .invoice-total-row { font-size:16px; text-align:right; padding:15px 0; font-weight:bold; border-top:2px solid #333; border-bottom:2px solid #333; margin-bottom:20px; }
+            .invoice-notes { background:#f9f9f9; padding:15px; border-radius:5px; font-size:12px; color:#555; line-height:1.8; white-space:pre-wrap; margin-bottom:20px; }
+            .invoice-footer { display:flex; justify-content:space-between; margin-top:40px; font-size:13px; }
+            .invoice-stamp-area { text-align:center; width:200px; }
+            .invoice-stamp-area img { width:120px; height:auto; margin-bottom:5px; }
+            .invoice-stamp-area .stamp-label { padding-top:10px; border-top:1px solid #333; font-weight:600; }
+        `;
+    }
+
+    // 이미지 저장
+    const saveInvoiceImgBtn = document.getElementById('saveInvoiceImgBtn');
+    if (saveInvoiceImgBtn) {
+        saveInvoiceImgBtn.addEventListener('click', function() {
+            const target = document.getElementById('invoiceDocContent');
+            if (!target || typeof html2canvas === 'undefined') {
+                alert('이미지 저장 기능을 사용할 수 없습니다.');
+                return;
+            }
+
+            html2canvas(target, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                const link = document.createElement('a');
+                const docType = document.querySelector('input[name="invoiceType"]:checked').value;
+                const clientName = document.getElementById('invClientName').value || '고객';
+                const today = new Date().toISOString().split('T')[0];
+                link.download = `${docType}_${clientName}_${today}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(err => {
+                alert('이미지 생성 중 오류: ' + err.message);
+            });
+        });
+    }
+
+    // ========================================
+    // 명세서 저장/목록/불러오기
+    // ========================================
+    // 명세서 Firebase 저장
+    const saveInvoiceToDbBtn = document.getElementById('saveInvoiceToDbBtn');
+    if (saveInvoiceToDbBtn) {
+        saveInvoiceToDbBtn.addEventListener('click', async function() {
+            const docType = document.querySelector('input[name="invoiceType"]:checked').value;
+            const includeVat = document.getElementById('invIncludeVat').checked;
+
+            const supplier = {
+                name: document.getElementById('invSupplierName').value || '',
+                ceo: document.getElementById('invSupplierCeo').value || '',
+                addr: document.getElementById('invSupplierAddr').value || '',
+                bizNo: document.getElementById('invSupplierBizNo').value || '',
+                tel: document.getElementById('invSupplierTel').value || ''
+            };
+            const client = {
+                name: document.getElementById('invClientName').value || '',
+                tel: document.getElementById('invClientTel').value || '',
+                addr: document.getElementById('invClientAddr').value || ''
+            };
+
+            const itemRows = document.querySelectorAll('.invoice-item-row');
+            const items = [];
+            let grandTotal = 0;
+            itemRows.forEach((row) => {
+                const name = row.querySelector('.inv-item-name').value || '';
+                const qty = parseInt(row.querySelector('.inv-item-qty').value) || 0;
+                const price = parseInt(row.querySelector('.inv-item-price').value) || 0;
+                const amount = qty * price;
+                if (name) {
+                    items.push({ name, qty, price, amount });
+                    grandTotal += amount;
+                }
+            });
+
+            const notes = document.getElementById('invNotes').value || '';
+            const vat = includeVat ? Math.round(grandTotal * 0.1) : 0;
+            const finalTotal = includeVat ? grandTotal + vat : grandTotal;
+
+            const invoiceData = {
+                docType,
+                includeVat,
+                supplier,
+                client,
+                items,
+                grandTotal,
+                vat,
+                finalTotal,
+                notes,
+                transactionId: currentInvoiceTransactionId || null,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                await db.collection('invoices').add(invoiceData);
+                alert('명세서가 저장되었습니다.');
+            } catch (err) {
+                alert('저장 실패: ' + err.message);
+            }
+        });
+    }
+
+    // 저장목록 모달
+    const invoiceListModal = document.getElementById('invoiceListModal');
+    const showInvoiceListBtn = document.getElementById('showInvoiceListBtn');
+    const closeInvoiceListBtn = document.getElementById('closeInvoiceListBtn');
+
+    if (showInvoiceListBtn) {
+        showInvoiceListBtn.addEventListener('click', function() {
+            loadInvoiceList();
+            invoiceFormModal.classList.remove('show');
+            invoiceListModal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        });
+    }
+    if (closeInvoiceListBtn) {
+        closeInvoiceListBtn.addEventListener('click', function() {
+            invoiceListModal.classList.remove('show');
+            invoiceFormModal.classList.add('show');
+        });
+    }
+    window.addEventListener('click', function(e) {
+        if (e.target === invoiceListModal) {
+            invoiceListModal.classList.remove('show');
+            invoiceFormModal.classList.add('show');
+        }
+    });
+
+    // 목록 불러오기
+    async function loadInvoiceList() {
+        const container = document.getElementById('invoiceListContainer');
+        container.innerHTML = '<div style="text-align:center;padding:30px;color:#999;">불러오는 중...</div>';
+
+        try {
+            const snapshot = await db.collection('invoices').orderBy('createdAt', 'desc').limit(50).get();
+            if (snapshot.empty) {
+                container.innerHTML = '<div class="invoice-list-empty">저장된 명세서가 없습니다.</div>';
+                return;
+            }
+
+            let html = '';
+            snapshot.forEach(doc => {
+                const d = doc.data();
+                const date = d.createdAt ? d.createdAt.toDate() : new Date();
+                const dateStr = `${date.getFullYear()}.${String(date.getMonth()+1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')}`;
+                const typeCls = d.docType === '견적서' ? 'estimate' : 'statement';
+                const total = (d.finalTotal || d.grandTotal || 0).toLocaleString();
+                const clientName = d.client?.name || '미지정';
+                const itemSummary = d.items?.length ? d.items[0].name + (d.items.length > 1 ? ` 외 ${d.items.length - 1}건` : '') : '';
+
+                html += `
+                <div class="invoice-list-item" data-id="${doc.id}">
+                    <div class="invoice-list-info">
+                        <div class="inv-title">${clientName}<span class="invoice-list-badge ${typeCls}">${d.docType}</span></div>
+                        <div class="inv-meta">${dateStr} · ${itemSummary}</div>
+                    </div>
+                    <div class="invoice-list-amount">₩${total}</div>
+                    <div class="invoice-list-actions">
+                        <button class="inv-btn-load" onclick="loadSavedInvoice('${doc.id}')">불러오기</button>
+                        <button class="inv-btn-delete" onclick="deleteSavedInvoice('${doc.id}')">삭제</button>
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        } catch (err) {
+            container.innerHTML = '<div class="invoice-list-empty">불러오기 실패: ' + err.message + '</div>';
+        }
+    }
+
+    // 저장된 명세서 불러오기
+    window.loadSavedInvoice = async function(docId) {
+        try {
+            const doc = await db.collection('invoices').doc(docId).get();
+            if (!doc.exists) { alert('명세서를 찾을 수 없습니다.'); return; }
+            const d = doc.data();
+
+            // 문서 유형
+            document.querySelectorAll('input[name="invoiceType"]').forEach(r => {
+                r.checked = (r.value === d.docType);
+            });
+
+            // 부가세
+            document.getElementById('invIncludeVat').checked = d.includeVat || false;
+
+            // 공급자
+            if (d.supplier) {
+                document.getElementById('invSupplierName').value = d.supplier.name || '';
+                document.getElementById('invSupplierCeo').value = d.supplier.ceo || '';
+                document.getElementById('invSupplierAddr').value = d.supplier.addr || '';
+                document.getElementById('invSupplierBizNo').value = d.supplier.bizNo || '';
+                document.getElementById('invSupplierTel').value = d.supplier.tel || '';
+            }
+
+            // 고객
+            if (d.client) {
+                document.getElementById('invClientName').value = d.client.name || '';
+                document.getElementById('invClientTel').value = d.client.tel || '';
+                document.getElementById('invClientAddr').value = d.client.addr || '';
+            }
+
+            // 품목
+            const container = document.getElementById('invoiceItemsContainer');
+            container.innerHTML = '';
+            if (d.items && d.items.length > 0) {
+                d.items.forEach(item => {
+                    addInvoiceItem(item.name, item.qty, item.price);
+                });
+            } else {
+                addInvoiceItem('', 1, 0);
+            }
+
+            // 비고
+            document.getElementById('invNotes').value = d.notes || '';
+
+            // 거래 ID
+            currentInvoiceTransactionId = d.transactionId || null;
+
+            // 목록 모달 닫고 작성 모달 열기
+            invoiceListModal.classList.remove('show');
+            invoiceFormModal.classList.add('show');
+
+        } catch (err) {
+            alert('불러오기 실패: ' + err.message);
+        }
+    };
+
+    // 저장된 명세서 삭제
+    window.deleteSavedInvoice = async function(docId) {
+        if (!confirm('이 명세서를 삭제하시겠습니까?')) return;
+        try {
+            await db.collection('invoices').doc(docId).delete();
+            loadInvoiceList();
+        } catch (err) {
+            alert('삭제 실패: ' + err.message);
+        }
+    };
     console.log('앱 초기화 시작...');
     setDefaultDate();
     loadTransactions();

@@ -660,12 +660,157 @@
     </div>
     <!-- container 종료 -->
 
+    <!-- 거래명세서 작성 모달 -->
+    <div class="modal" id="invoiceFormModal">
+        <div class="modal-content" style="max-width:600px;">
+            <div class="modal-header">
+                <h2 class="section-title" style="border-bottom-color: #2196F3;">📄 거래명세서 / 견적서 작성</h2>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button class="btn btn-primary" id="showInvoiceListBtn" style="background:#ff9800;font-size:0.8em;padding:6px 12px;">📋 저장목록</button>
+                    <button class="modal-close" id="closeInvoiceFormBtn">&times;</button>
+                </div>
+            </div>
+            <form id="invoiceForm">
+                <!-- 문서 유형 선택 -->
+                <div class="form-group">
+                    <label>문서 유형</label>
+                    <div class="payment-status-group">
+                        <label class="payment-radio-label" style="border-color:#2196F3;">
+                            <input type="radio" name="invoiceType" value="거래명세서" checked style="accent-color:#2196F3;">
+                            <span class="payment-radio-text">📄 거래명세서</span>
+                        </label>
+                        <label class="payment-radio-label" style="border-color:#ff9800;">
+                            <input type="radio" name="invoiceType" value="견적서" style="accent-color:#ff9800;">
+                            <span class="payment-radio-text">📋 견적서</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 부가세 포함 여부 -->
+                <div class="form-group">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                        <input type="checkbox" id="invIncludeVat" style="width:18px;height:18px;accent-color:#2196F3;">
+                        <span>부가세(VAT) 표기 포함</span>
+                        <small style="color:#999;">(체크 시 공급가/부가세 분리 표기)</small>
+                    </label>
+                </div>
+
+                <!-- 공급자 정보 -->
+                <div class="invoice-section-title">🏢 공급자 정보</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="invSupplierName">상호 *</label>
+                        <input type="text" id="invSupplierName" value="에벤에셀 전기" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="invSupplierCeo">대표자</label>
+                        <input type="text" id="invSupplierCeo" value="변경남">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="invSupplierAddr">주소</label>
+                    <input type="text" id="invSupplierAddr" value="경기도 용인시 처인구 금학로 91">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="invSupplierBizNo">사업자번호</label>
+                        <input type="text" id="invSupplierBizNo" value="856-49-01003">
+                    </div>
+                    <div class="form-group">
+                        <label for="invSupplierTel">연락처</label>
+                        <input type="text" id="invSupplierTel" value="010-6595-5119">
+                    </div>
+                </div>
+
+                <!-- 공급받는자 정보 -->
+                <div class="invoice-section-title">👤 공급받는자 정보</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="invClientName">고객명(상호) *</label>
+                        <input type="text" id="invClientName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="invClientTel">연락처</label>
+                        <input type="text" id="invClientTel">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="invClientAddr">주소</label>
+                    <input type="text" id="invClientAddr">
+                </div>
+
+                <!-- 품목 -->
+                <div class="invoice-section-title">📦 품목 내역</div>
+                <div id="invoiceItemsContainer">
+                    <div class="invoice-item-row" data-idx="0">
+                        <div class="form-row">
+                            <div class="form-group" style="flex:3;">
+                                <label>품목명</label>
+                                <input type="text" class="inv-item-name" placeholder="품목명">
+                            </div>
+                            <div class="form-group" style="flex:1;">
+                                <label>수량</label>
+                                <input type="number" class="inv-item-qty" value="1" min="1">
+                            </div>
+                            <div class="form-group" style="flex:2;">
+                                <label>단가</label>
+                                <input type="number" class="inv-item-price" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-add-item" id="addInvoiceItemBtn">+ 품목 추가</button>
+
+                <!-- 비고 -->
+                <div class="form-group" style="margin-top:15px;">
+                    <label for="invNotes">비고</label>
+                    <textarea id="invNotes" placeholder="추가 참고사항, 계좌번호 등">계좌번호 : 국민 806801-01-334721 (변경남)</textarea>
+                </div>
+
+                <button type="button" class="btn btn-primary" id="previewInvoiceBtn" style="background:linear-gradient(135deg,#2196F3,#1976D2);">
+                    👁️ 미리보기
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 명세서 미리보기 모달 -->
+    <div class="modal" id="invoicePreviewModal">
+        <div class="modal-content" style="max-width:800px;padding:0;">
+            <div class="modal-header" style="padding:15px 20px;">
+                <h2 style="font-size:1.1em;">📄 미리보기</h2>
+                <button class="modal-close" id="closeInvoicePreviewBtn">&times;</button>
+            </div>
+            <div id="invoicePreviewArea" style="padding:20px;background:#f5f5f5;overflow-y:auto;max-height:70vh;"></div>
+            <div style="padding:15px 20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;border-top:1px solid #e0e0e0;">
+                <button class="btn btn-primary" id="saveInvoiceToDbBtn" style="background:#ff9800;">💾 저장</button>
+                <button class="btn btn-primary" id="printInvoiceBtn" style="background:#2196F3;">🖨️ 인쇄</button>
+                <button class="btn btn-primary" id="saveInvoiceImgBtn" style="background:#4CAF50;">📷 이미지 저장</button>
+                <button class="btn btn-primary" id="closePreviewBtn2" style="background:#999;">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 저장된 명세서 목록 모달 -->
+    <div class="modal" id="invoiceListModal">
+        <div class="modal-content" style="max-width:650px;">
+            <div class="modal-header">
+                <h2 class="section-title" style="border-bottom-color:#ff9800;">📋 저장된 명세서 목록</h2>
+                <button class="modal-close" id="closeInvoiceListBtn">&times;</button>
+            </div>
+            <div id="invoiceListContainer" style="max-height:65vh;overflow-y:auto;padding:10px 0;"></div>
+        </div>
+    </div>
+
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- html2canvas (이미지 저장용) -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     
     <script src="app-compat.js"></script>
 </body>
