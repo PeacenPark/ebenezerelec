@@ -2335,22 +2335,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (top >= bottom || left >= right) return canvas;
 
-        // 여백 약간 추가 (20px)
-        const pad = 20;
-        top = Math.max(0, top - pad);
-        left = Math.max(0, left - pad);
-        bottom = Math.min(h - 1, bottom + pad);
-        right = Math.min(w - 1, right + pad);
-
+        // 내용만 정확히 잘라내기
         const trimW = right - left + 1;
         const trimH = bottom - top + 1;
+
+        // 사방 여백 추가 (실제 이미지 픽셀 기준)
+        const pad = 150;
+        const finalW = trimW + pad * 2;
+        const finalH = trimH + pad * 2;
+
         const trimmed = document.createElement('canvas');
-        trimmed.width = trimW;
-        trimmed.height = trimH;
+        trimmed.width = finalW;
+        trimmed.height = finalH;
         const tCtx = trimmed.getContext('2d');
         tCtx.fillStyle = '#ffffff';
-        tCtx.fillRect(0, 0, trimW, trimH);
-        tCtx.drawImage(canvas, left, top, trimW, trimH, 0, 0, trimW, trimH);
+        tCtx.fillRect(0, 0, finalW, finalH);
+        // 내용을 중앙에 배치 (pad만큼 오프셋)
+        tCtx.drawImage(canvas, left, top, trimW, trimH, pad, pad, trimW, trimH);
         return trimmed;
     }
 
