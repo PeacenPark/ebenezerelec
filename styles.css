@@ -1978,17 +1978,20 @@ body {
 
 .invoice-info-table th {
     background: #f5f5f5;
-    padding: 8px 12px;
+    padding: 8px 10px;
     text-align: left;
     font-weight: 600;
     border: 1px solid #ddd;
-    width: 80px;
+    width: 75px;
+    min-width: 75px;
+    max-width: 75px;
     white-space: nowrap;
 }
 
 .invoice-info-table td {
-    padding: 8px 12px;
+    padding: 8px 10px;
     border: 1px solid #ddd;
+    word-break: break-all;
 }
 
 .invoice-items-table {

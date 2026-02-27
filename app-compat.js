@@ -2181,8 +2181,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .invoice-doc-title.statement { color:#1565C0; border-bottom-color:#1565C0; }
             .invoice-doc-no { text-align:right; font-size:12px; color:#666; margin-bottom:20px; }
             .invoice-info-table { width:100%; border-collapse:collapse; font-size:13px; }
-            .invoice-info-table th { background:#f5f5f5; padding:8px 12px; text-align:left; font-weight:600; border:1px solid #ddd; width:80px; }
-            .invoice-info-table td { padding:8px 12px; border:1px solid #ddd; }
+            .invoice-info-table th { background:#f5f5f5; padding:8px 10px; text-align:left; font-weight:600; border:1px solid #ddd; width:75px; min-width:75px; max-width:75px; white-space:nowrap; }
+            .invoice-info-table td { padding:8px 10px; border:1px solid #ddd; word-break:break-all; }
             .invoice-items-table { width:100%; border-collapse:collapse; font-size:13px; }
             .invoice-items-table thead th { background:#37474f; color:white; padding:10px 8px; text-align:center; border:1px solid #37474f; }
             .invoice-items-table.estimate thead th { background:#e65100; border-color:#e65100; }
@@ -2224,8 +2224,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 style.textContent = getInvoicePrintCSS() + `
                     .invoice-doc { width:760px; padding:30px 20px; font-family:'Malgun Gothic','맑은 고딕',sans-serif; box-sizing:border-box; }
                     .invoice-doc * { box-sizing:border-box; }
-                    .invoice-info-table { table-layout:fixed; }
-                    .invoice-items-table { table-layout:fixed; }
+                    .invoice-info-table { table-layout:auto; width:100%; }
+                    .invoice-info-table th { width:75px !important; min-width:75px; max-width:75px; white-space:nowrap; font-size:12px; padding:7px 8px; }
+                    .invoice-info-table td { width:auto; font-size:12px; padding:7px 8px; word-break:break-all; }
+                    .invoice-items-table { table-layout:auto; width:100%; }
                     .invoice-stamp-area { position:relative; }
                     .invoice-stamp-area img { position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);width:130px;height:auto;opacity:1; }
                 `;
