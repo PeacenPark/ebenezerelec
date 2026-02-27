@@ -2130,16 +2130,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 const previewArea = document.getElementById('invoicePreviewArea');
                 const docEl = document.getElementById('invoiceDocContent');
                 if (docEl && previewArea) {
-                    const areaWidth = previewArea.clientWidth - 20;
+                    const areaWidth = previewArea.clientWidth;
                     const docWidth = 720;
                     const scale = Math.min(1, areaWidth / docWidth);
                     docEl.style.width = docWidth + 'px';
                     docEl.style.minWidth = docWidth + 'px';
                     docEl.style.transform = `scale(${scale})`;
                     docEl.style.transformOrigin = 'top left';
-                    // 축소된 높이에 맞춰 래퍼 설정
-                    const scaledHeight = docEl.offsetHeight * scale;
-                    previewArea.style.minHeight = (scaledHeight + 20) + 'px';
+                    // 래퍼로 실제 차지 영역을 축소 크기에 맞춤
+                    const wrapper = document.createElement('div');
+                    wrapper.style.width = (docWidth * scale) + 'px';
+                    wrapper.style.height = (docEl.offsetHeight * scale) + 'px';
+                    wrapper.style.overflow = 'hidden';
+                    docEl.parentNode.insertBefore(wrapper, docEl);
+                    wrapper.appendChild(docEl);
                 }
             }, 50);
         }
@@ -2223,16 +2227,26 @@ document.addEventListener('DOMContentLoaded', function() {
             saveInvoiceImgBtn.textContent = '⏳ 생성중...';
 
             try {
-                // PC와 동일한 레이아웃으로 캡처하기 위해 숨겨진 고정폭 컨테이너 사용
                 const offscreen = document.createElement('div');
-                offscreen.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;z-index:-1;background:white;';
+                offscreen.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;background:white;display:inline-block;';
                 offscreen.innerHTML = target.outerHTML;
                 document.body.appendChild(offscreen);
 
-                // 스타일 재적용 (인라인 스타일은 복제되지만 클래스 스타일 보강)
+                // 모바일 축소용 인라인 스타일 제거
+                const docEl = offscreen.querySelector('.invoice-doc');
+                if (docEl) {
+                    docEl.style.cssText = '';
+                    docEl.style.width = '700px';
+                    docEl.style.background = 'white';
+                    docEl.style.padding = '30px 25px';
+                    docEl.style.fontFamily = "'Malgun Gothic','맑은 고딕',sans-serif";
+                    docEl.style.color = '#333';
+                    docEl.style.lineHeight = '1.6';
+                    docEl.style.boxSizing = 'border-box';
+                }
+
                 const style = document.createElement('style');
                 style.textContent = getInvoicePrintCSS() + `
-                    .invoice-doc { width:760px; padding:30px 20px; font-family:'Malgun Gothic','맑은 고딕',sans-serif; box-sizing:border-box; }
                     .invoice-doc * { box-sizing:border-box; }
                     .invoice-info-table { table-layout:auto; width:100%; }
                     .invoice-info-table th { width:75px !important; min-width:75px; max-width:75px; white-space:nowrap; font-size:12px; padding:7px 8px; }
@@ -2243,15 +2257,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 offscreen.appendChild(style);
 
-                const canvas = await html2canvas(offscreen, {
+                const captureTarget = docEl || offscreen;
+                const canvas = await html2canvas(captureTarget, {
                     scale: 4,
                     useCORS: true,
-                    backgroundColor: '#ffffff',
-                    width: 800,
-                    windowWidth: 800
+                    backgroundColor: '#ffffff'
                 });
 
                 document.body.removeChild(offscreen);
+
+                // canvas 여백 트림
+                const trimmedCanvas = trimCanvas(canvas);
 
                 const docType = document.querySelector('input[name="invoiceType"]:checked').value;
                 const clientName = document.getElementById('invClientName').value || '고객';
@@ -2260,7 +2276,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // 모바일: Web Share API로 바로 사진 공유/저장
                 if (navigator.share && /Mobi|Android|iPhone/i.test(navigator.userAgent)) {
-                    canvas.toBlob(async function(blob) {
+                    trimmedCanvas.toBlob(async function(blob) {
                         try {
                             const file = new File([blob], fileName, { type: 'image/png' });
                             await navigator.share({
@@ -2274,7 +2290,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }, 'image/png');
                 } else {
                     // PC: 기존 다운로드 방식
-                    downloadCanvas(canvas, fileName);
+                    downloadCanvas(trimmedCanvas, fileName);
                 }
 
             } catch (err) {
@@ -2291,6 +2307,51 @@ document.addEventListener('DOMContentLoaded', function() {
         link.download = fileName;
         link.href = canvas.toDataURL('image/png');
         link.click();
+    }
+
+    // 흰색 여백 트림
+    function trimCanvas(canvas) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const data = imageData.data;
+
+        let top = h, bottom = 0, left = w, right = 0;
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const i = (y * w + x) * 4;
+                const r = data[i], g = data[i+1], b = data[i+2];
+                // 흰색이 아닌 픽셀 감지 (250 이하)
+                if (r < 250 || g < 250 || b < 250) {
+                    if (y < top) top = y;
+                    if (y > bottom) bottom = y;
+                    if (x < left) left = x;
+                    if (x > right) right = x;
+                }
+            }
+        }
+
+        if (top >= bottom || left >= right) return canvas;
+
+        // 여백 약간 추가 (20px)
+        const pad = 20;
+        top = Math.max(0, top - pad);
+        left = Math.max(0, left - pad);
+        bottom = Math.min(h - 1, bottom + pad);
+        right = Math.min(w - 1, right + pad);
+
+        const trimW = right - left + 1;
+        const trimH = bottom - top + 1;
+        const trimmed = document.createElement('canvas');
+        trimmed.width = trimW;
+        trimmed.height = trimH;
+        const tCtx = trimmed.getContext('2d');
+        tCtx.fillStyle = '#ffffff';
+        tCtx.fillRect(0, 0, trimW, trimH);
+        tCtx.drawImage(canvas, left, top, trimW, trimH, 0, 0, trimW, trimH);
+        return trimmed;
     }
 
     // ========================================
