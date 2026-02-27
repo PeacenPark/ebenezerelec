@@ -2092,7 +2092,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             <tr><th>연락처</th><td>${client.tel}</td></tr>
                             <tr><th>주 소</th><td>${client.addr}</td></tr>
                             <tr><th colspan="2" style="text-align:center;padding:14px;font-size:12px;color:#999;">아래와 같이 ${isEstimate ? '견적' : '거래 내역을 명세'}합니다.</th></tr>
-                            <tr><th></th><td></td></tr>
                         </table>
                     </div>
                 </div>
