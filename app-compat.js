@@ -2023,7 +2023,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const notes = document.getElementById('invNotes').value || '';
         const today = new Date();
         const dateStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
-        const docNo = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*1000)).padStart(3,'0')}`;
+        const docNo = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}-${Math.floor(Math.random()*10)+1}`;
 
         // VAT 계산: 현금가(grandTotal) 기준, 체크 시 10% 추가
         const supplyAmount = grandTotal; // 공급가 = 현금가 그대로
