@@ -2234,7 +2234,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 offscreen.appendChild(style);
 
                 const canvas = await html2canvas(offscreen, {
-                    scale: 2,
+                    scale: 4,
                     useCORS: true,
                     backgroundColor: '#ffffff',
                     width: 800,
