@@ -20,6 +20,8 @@ console.log('Firebase 초기화 완료');
 // 전역 변수
 let currentEditId = null;
 let allTransactions = [];
+let currentDisplayedTransactions = [];
+let currentSortBy = 'date';
 let allSchedules = [];
 let allExpenses = [];
 let currentCalendarYear = new Date().getFullYear();
@@ -393,8 +395,28 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             return;
         }
+
+        // 정렬 기준 적용
+        const sortBy = currentSortBy || 'date';
+        
+        // 정산일순: 미수금 제외 / 미수금: 미수금만
+        let filtered;
+        if (sortBy === 'paidDate') {
+            filtered = transactions.filter(t => t.paymentStatus !== 'unpaid');
+        } else if (sortBy === 'unpaid') {
+            filtered = transactions.filter(t => t.paymentStatus === 'unpaid');
+        } else {
+            filtered = transactions;
+        }
+
+        const sorted = [...filtered].sort((a, b) => {
+            const dateA = sortBy === 'paidDate' ? (a.paidDate || a.date) : a.date;
+            const dateB = sortBy === 'paidDate' ? (b.paidDate || b.date) : b.date;
+            return dateB.localeCompare(dateA);
+        });
     
-        listElement.innerHTML = transactions.map(transaction => createTransactionHTML(transaction)).join('');
+        currentDisplayedTransactions = sorted;
+        listElement.innerHTML = sorted.map(transaction => createTransactionHTML(transaction)).join('');
     }
     
     // ========================================
@@ -407,11 +429,18 @@ document.addEventListener('DOMContentLoaded', function() {
             ? '<span class="unpaid-badge">🔴 미수금</span>' 
             : '<span class="paid-badge">💰 정산완료</span>';
 
+        const paidDateLine = (!isUnpaid && transaction.paidDate) 
+            ? `<div class="transaction-date" style="font-size:11px;color:#4CAF50;">💰 ${transaction.paidDate}</div>` 
+            : '';
+
         return `
             <div class="${itemClass}" data-id="${transaction.id}">
                 <div class="transaction-header">
                     <div class="customer-name">👤 ${transaction.customerName} ${paymentBadge}</div>
-                    <div class="transaction-date">📅 ${transaction.date}</div>
+                    <div style="text-align:right;">
+                        <div class="transaction-date">📅 ${transaction.date}</div>
+                        ${paidDateLine}
+                    </div>
                 </div>
 
                 <div class="transaction-summary">
@@ -599,26 +628,29 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleFilter(e) {
         filterButtons.forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
-        
-        // 월별 선택 초기화
-        const monthFilterEl = document.getElementById('monthFilter');
-        if (monthFilterEl) monthFilterEl.value = '';
     
         const filter = e.target.dataset.filter;
-        const today = new Date().toISOString().split('T')[0];
-        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-    
+        currentSortBy = filter;
+
+        // 월별 선택이 되어있으면 그 범위 내에서 필터
+        const monthFilterEl = document.getElementById('monthFilter');
+        const selectedMonth = monthFilterEl ? monthFilterEl.value : '';
+
         let filtered = allTransactions;
-    
-        if (filter === 'today') {
-            filtered = allTransactions.filter(t => t.date === today);
-        } else if (filter === 'week') {
-            filtered = allTransactions.filter(t => t.date >= weekAgo);
-        } else if (filter === 'month') {
-            filtered = allTransactions.filter(t => t.date >= monthStart);
+
+        // 월별 선택 적용
+        if (selectedMonth) {
+            filtered = filtered.filter(t => {
+                const targetDate = currentSortBy === 'paidDate' ? (t.paidDate || t.date) : t.date;
+                return targetDate.startsWith(selectedMonth);
+            });
+        }
+
+        // 버튼 필터 적용
+        if (filter === 'paidDate') {
+            filtered = filtered.filter(t => t.paymentStatus !== 'unpaid');
         } else if (filter === 'unpaid') {
-            filtered = allTransactions.filter(t => t.paymentStatus === 'unpaid');
+            filtered = filtered.filter(t => t.paymentStatus === 'unpaid');
         }
     
         displayTransactions(filtered);
@@ -632,7 +664,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const monthlyData = {};
     
         transactions.forEach(t => {
-            const month = t.date.substring(0, 7);
+            // 미수금은 통계에서 제외
+            if (t.paymentStatus === 'unpaid') return;
+
+            // 정산완료: paidDate가 있으면 그 날짜 기준, 없으면 거래일 기준(기존 데이터 호환)
+            const statsDate = t.paidDate || t.date;
+            const month = statsDate.substring(0, 7);
+
             if (!monthlyData[month]) {
                 monthlyData[month] = {
                     count: 0,
@@ -745,6 +783,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let totalRevenue = 0;
     
         transactions.forEach(t => {
+            if (t.paymentStatus === 'unpaid') return;
             if (!locationData[t.location]) {
                 locationData[t.location] = {
                     count: 0,
@@ -806,6 +845,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let totalRevenue = 0;
     
         transactions.forEach(t => {
+            if (t.paymentStatus === 'unpaid') return;
             if (!serviceData[t.serviceType]) {
                 serviceData[t.serviceType] = {
                     count: 0,
@@ -867,6 +907,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let totalRevenue = 0;
     
         transactions.forEach(t => {
+            if (t.paymentStatus === 'unpaid') return;
             const source = t.referralSource || '미입력';
             if (!referralData[source]) {
                 referralData[source] = {
@@ -948,11 +989,20 @@ document.addEventListener('DOMContentLoaded', function() {
         monthFilter.addEventListener('change', function(e) {
             const selectedMonth = e.target.value;
             
-            // 다른 필터 버튼 비활성화
-            filterButtons.forEach(btn => btn.classList.remove('active'));
+            // 버튼 활성화 상태 유지 (비활성화하지 않음)
+            // 활성 버튼 없으면 거래일을 기본으로
+            const activeBtn = document.querySelector('.filter-btn.active');
+            if (!activeBtn) {
+                const dateBtn = document.querySelector('.filter-btn[data-filter="date"]');
+                if (dateBtn) dateBtn.classList.add('active');
+                currentSortBy = 'date';
+            }
             
             if (selectedMonth) {
-                const filtered = allTransactions.filter(t => t.date.startsWith(selectedMonth));
+                const filtered = allTransactions.filter(t => {
+                    const targetDate = currentSortBy === 'paidDate' ? (t.paidDate || t.date) : t.date;
+                    return targetDate.startsWith(selectedMonth);
+                });
                 displayTransactions(filtered);
                 updateStatistics(filtered);
             } else {
@@ -961,7 +1011,54 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
     
+    
+    
+    // 엑셀 저장
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    if (exportExcelBtn) {
+        exportExcelBtn.addEventListener('click', function() {
+            const data = currentDisplayedTransactions;
+            if (!data || data.length === 0) {
+                alert('저장할 거래 내역이 없습니다.');
+                return;
+            }
+
+            const rows = data.map(t => ({
+                '거래일': t.date,
+                '정산일': t.paidDate || '',
+                '결제상태': t.paymentStatus === 'unpaid' ? '미수금' : '정산완료',
+                '고객명': t.customerName,
+                '연락처': t.phone,
+                '지역': t.location,
+                '서비스': t.serviceType,
+                '유입경로': t.referralSource || '',
+                '총비용': t.totalCost || 0,
+                '자재비': t.materialCost || 0,
+                '인건비': t.laborCost || 0,
+                '순이익': t.profit || 0,
+                '작업내용': t.description || ''
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(rows);
+
+            // 열 너비 설정
+            ws['!cols'] = [
+                {wch:12},{wch:12},{wch:10},{wch:12},{wch:15},
+                {wch:10},{wch:14},{wch:10},{wch:12},{wch:12},
+                {wch:12},{wch:12},{wch:30}
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '거래내역');
+
+            const today = new Date();
+            const fileName = `거래내역_${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        });
+    }
+
     // 통계 탭 전환
     document.querySelectorAll('.stats-tab').forEach(tab => {
         tab.addEventListener('click', function() {
@@ -1073,7 +1170,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div style="margin-top: 15px; text-align: center;">
                     ${transaction.paymentStatus === 'unpaid' 
                         ? '<span class="unpaid-badge" style="font-size:1em;padding:8px 20px;">🔴 미수금</span>' 
-                        : '<span class="paid-badge" style="font-size:1em;padding:8px 20px;">💰 정산완료</span>'}
+                        : `<span class="paid-badge" style="font-size:1em;padding:8px 20px;">💰 정산완료</span>
+                           <div style="margin-top:8px;font-size:13px;color:#888;">정산일: <input type="date" id="paidDateEdit" value="${transaction.paidDate || transaction.date}" style="border:1px solid #ddd;border-radius:4px;padding:2px 6px;font-size:13px;color:#555;"> <button id="paidDateSaveBtn" style="padding:2px 8px;font-size:12px;border:1px solid #4CAF50;background:#4CAF50;color:white;border-radius:4px;cursor:pointer;">저장</button></div>`}
                 </div>
             </div>
         `;
@@ -1100,9 +1198,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const markPaidBtn = document.getElementById('markPaidBtn');
         if (markPaidBtn) {
             markPaidBtn.addEventListener('click', async function() {
+                const today = new Date();
+                const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+                const paidDate = prompt('정산일을 입력하세요 (YYYY-MM-DD):', defaultDate);
+                if (!paidDate) return;
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(paidDate)) {
+                    alert('날짜 형식이 올바르지 않습니다. (예: 2025-03-01)');
+                    return;
+                }
                 try {
-                    await db.collection('transactions').doc(currentDetailId).update({ paymentStatus: 'paid' });
-                    alert('💰 정산완료 처리되었습니다!');
+                    await db.collection('transactions').doc(currentDetailId).update({ paymentStatus: 'paid', paidDate: paidDate });
+                    alert('💰 정산완료 처리되었습니다! (' + paidDate + ')');
                     closeDetailModal();
                 } catch (err) { alert('❌ 오류: ' + err.message); }
             });
@@ -1113,8 +1219,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (markUnpaidBtn) {
             markUnpaidBtn.addEventListener('click', async function() {
                 try {
-                    await db.collection('transactions').doc(currentDetailId).update({ paymentStatus: 'unpaid' });
+                    await db.collection('transactions').doc(currentDetailId).update({ paymentStatus: 'unpaid', paidDate: firebase.firestore.FieldValue.delete() });
                     alert('🔴 미수금으로 변경되었습니다.');
+                    closeDetailModal();
+                } catch (err) { alert('❌ 오류: ' + err.message); }
+            });
+        }
+
+        // 정산일 수정 저장 버튼
+        const paidDateSaveBtn = document.getElementById('paidDateSaveBtn');
+        if (paidDateSaveBtn) {
+            paidDateSaveBtn.addEventListener('click', async function() {
+                const newDate = document.getElementById('paidDateEdit').value;
+                if (!newDate) { alert('날짜를 선택하세요.'); return; }
+                try {
+                    await db.collection('transactions').doc(currentDetailId).update({ paidDate: newDate });
+                    alert('정산일이 ' + newDate + '로 변경되었습니다.');
                     closeDetailModal();
                 } catch (err) { alert('❌ 오류: ' + err.message); }
             });

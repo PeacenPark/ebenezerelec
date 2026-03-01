@@ -183,10 +183,8 @@
 
                 <div class="filter-container">
                     <div class="filter-buttons">
-                        <button class="filter-btn active" data-filter="all">전체</button>
-                        <button class="filter-btn" data-filter="today">오늘</button>
-                        <button class="filter-btn" data-filter="week">이번 주</button>
-                        <button class="filter-btn" data-filter="month">이번 달</button>
+                        <button class="filter-btn active" data-filter="date">거래일</button>
+                        <button class="filter-btn" data-filter="paidDate">정산일</button>
                         <button class="filter-btn" data-filter="unpaid" style="border-color:#f44336;color:#f44336;">🔴 미수금</button>
                     </div>
                     
@@ -195,6 +193,10 @@
                             <option value="">월별 조회</option>
                         </select>
                     </div>
+                </div>
+
+                <div style="text-align:right;margin-bottom:10px;">
+                    <button id="exportExcelBtn" style="padding:6px 14px;font-size:13px;border:1px solid #4CAF50;background:#4CAF50;color:white;border-radius:6px;cursor:pointer;">📊 엑셀 저장</button>
                 </div>
 
                 <!-- 거래 목록 -->
@@ -811,6 +813,9 @@
 
     <!-- html2canvas (이미지 저장용) -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <!-- SheetJS (엑셀 저장용) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <script src="app-compat.js"></script>
 </body>
