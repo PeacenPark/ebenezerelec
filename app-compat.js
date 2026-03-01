@@ -1098,16 +1098,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const activeFilter = activeBtn ? activeBtn.dataset.filter : 'date';
             
             let filterLabel = '';
+            let titleLabel = '거래 내역서';
             if (selectedMonth) {
                 const [y, m] = selectedMonth.split('-');
                 filterLabel = `${y}년 ${parseInt(m)}월`;
             } else if (activeFilter === 'unpaid') {
                 filterLabel = '미수금';
+                titleLabel = '미수금 내역서';
             } else if (activeFilter === 'paidDate') {
                 filterLabel = '정산일 전체';
+                titleLabel = '정산 내역서';
             } else {
                 filterLabel = '전체';
             }
+            if (selectedMonth && activeFilter === 'paidDate') titleLabel = '정산 내역서';
+            if (selectedMonth && activeFilter === 'unpaid') titleLabel = '미수금 내역서';
 
             const container = document.createElement('div');
             container.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:white;padding:40px;font-family:Arial,"Noto Sans KR",sans-serif;';
@@ -1127,7 +1132,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             container.innerHTML = `
                 <div style="text-align:center;margin-bottom:25px;">
-                    <h2 style="margin:0 0 5px;font-size:22px;color:#333;">거래 내역서</h2>
+                    <h2 style="margin:0 0 5px;font-size:22px;color:#333;">${titleLabel}</h2>
                     <p style="margin:0;font-size:13px;color:#999;">에벤에셀 전기 | ${filterLabel} 기준 | ${data.length}건</p>
                 </div>
                 <table style="width:100%;border-collapse:collapse;">
