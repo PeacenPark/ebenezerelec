@@ -1038,8 +1038,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 '자재비': t.materialCost || 0,
                 '인건비': t.laborCost || 0,
                 '순이익': t.profit || 0,
-                '작업내용': t.description || ''
+                '작업내용': t.content || ''
             }));
+
+            // 합계행
+            const sumTotal = data.reduce((s, t) => s + (t.totalCost || 0), 0);
+            const sumMaterial = data.reduce((s, t) => s + (t.materialCost || 0), 0);
+            const sumLabor = data.reduce((s, t) => s + (t.laborCost || 0), 0);
+            const sumProfit = data.reduce((s, t) => s + (t.profit || 0), 0);
+            rows.push({
+                '거래일': '', '정산일': '', '결제상태': '', '고객명': '',
+                '연락처': '', '지역': '', '서비스': '', '유입경로': '합계',
+                '총비용': sumTotal, '자재비': sumMaterial, '인건비': sumLabor,
+                '순이익': sumProfit, '작업내용': ''
+            });
 
             const ws = XLSX.utils.json_to_sheet(rows);
 
@@ -1047,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ws['!cols'] = [
                 {wch:12},{wch:12},{wch:10},{wch:12},{wch:15},
                 {wch:10},{wch:14},{wch:10},{wch:12},{wch:12},
-                {wch:12},{wch:12},{wch:30}
+                {wch:12},{wch:12},{wch:40}
             ];
 
             const wb = XLSX.utils.book_new();
@@ -1056,6 +1068,119 @@ document.addEventListener('DOMContentLoaded', function() {
             const today = new Date();
             const fileName = `거래내역_${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}.xlsx`;
             XLSX.writeFile(wb, fileName);
+        });
+    }
+
+    // 이미지 저장
+    const exportImageBtn = document.getElementById('exportImageBtn');
+    if (exportImageBtn) {
+        exportImageBtn.addEventListener('click', async function() {
+            const data = currentDisplayedTransactions;
+            if (!data || data.length === 0) {
+                alert('저장할 거래 내역이 없습니다.');
+                return;
+            }
+
+            // 합계 계산
+            const sumTotal = data.reduce((s, t) => s + (t.totalCost || 0), 0);
+            const sumMaterial = data.reduce((s, t) => s + (t.materialCost || 0), 0);
+            const sumLabor = data.reduce((s, t) => s + (t.laborCost || 0), 0);
+            const sumProfit = data.reduce((s, t) => s + (t.profit || 0), 0);
+
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
+
+            // 오프스크린 HTML 생성
+            // 현재 필터 기준 텍스트 생성
+            const monthFilterEl = document.getElementById('monthFilter');
+            const selectedMonth = monthFilterEl ? monthFilterEl.value : '';
+            const activeBtn = document.querySelector('.filter-btn.active');
+            const activeFilter = activeBtn ? activeBtn.dataset.filter : 'date';
+            
+            let filterLabel = '';
+            if (selectedMonth) {
+                const [y, m] = selectedMonth.split('-');
+                filterLabel = `${y}년 ${parseInt(m)}월`;
+            } else if (activeFilter === 'unpaid') {
+                filterLabel = '미수금';
+            } else if (activeFilter === 'paidDate') {
+                filterLabel = '정산일 전체';
+            } else {
+                filterLabel = '전체';
+            }
+
+            const container = document.createElement('div');
+            container.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:white;padding:40px;font-family:Arial,"Noto Sans KR",sans-serif;';
+
+            let tableRows = data.map((t, i) => `
+                <tr style="border-bottom:1px solid #e0e0e0;">
+                    <td style="padding:10px 8px;text-align:center;font-size:13px;color:#666;">${i + 1}</td>
+                    <td style="padding:10px 8px;font-size:13px;">${t.paidDate || t.date}</td>
+                    <td style="padding:10px 8px;font-size:13px;">${t.customerName}</td>
+                    <td style="padding:10px 8px;font-size:13px;">${t.serviceType}</td>
+                    <td style="padding:10px 8px;text-align:right;font-size:13px;">₩${formatNumber(t.totalCost || 0)}</td>
+                    <td style="padding:10px 8px;text-align:right;font-size:13px;">₩${formatNumber(t.materialCost || 0)}</td>
+                    <td style="padding:10px 8px;text-align:right;font-size:13px;">₩${formatNumber(t.laborCost || 0)}</td>
+                    <td style="padding:10px 8px;text-align:right;font-size:13px;font-weight:bold;color:#1a73e8;">₩${formatNumber(t.profit || 0)}</td>
+                </tr>
+            `).join('');
+
+            container.innerHTML = `
+                <div style="text-align:center;margin-bottom:25px;">
+                    <h2 style="margin:0 0 5px;font-size:22px;color:#333;">거래 내역서</h2>
+                    <p style="margin:0;font-size:13px;color:#999;">에벤에셀 전기 | ${filterLabel} 기준 | ${data.length}건</p>
+                </div>
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#f8f9fa;border-bottom:2px solid #333;">
+                            <th style="padding:12px 8px;text-align:center;font-size:13px;width:40px;">No</th>
+                            <th style="padding:12px 8px;text-align:left;font-size:13px;">정산일</th>
+                            <th style="padding:12px 8px;text-align:left;font-size:13px;">고객명</th>
+                            <th style="padding:12px 8px;text-align:left;font-size:13px;">서비스</th>
+                            <th style="padding:12px 8px;text-align:right;font-size:13px;">총비용</th>
+                            <th style="padding:12px 8px;text-align:right;font-size:13px;">자재비</th>
+                            <th style="padding:12px 8px;text-align:right;font-size:13px;">인건비</th>
+                            <th style="padding:12px 8px;text-align:right;font-size:13px;">순이익</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                    <tfoot>
+                        <tr style="border-top:2px solid #333;background:#f8f9fa;">
+                            <td colspan="4" style="padding:12px 8px;font-size:14px;font-weight:bold;text-align:center;">합 계</td>
+                            <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;">₩${formatNumber(sumTotal)}</td>
+                            <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;">₩${formatNumber(sumMaterial)}</td>
+                            <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;">₩${formatNumber(sumLabor)}</td>
+                            <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;color:#1a73e8;">₩${formatNumber(sumProfit)}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+
+            document.body.appendChild(container);
+
+            try {
+                const canvas = await html2canvas(container, { scale: 3, backgroundColor: '#ffffff' });
+                document.body.removeChild(container);
+
+                const fileName = `거래내역서_${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}.png`;
+
+                if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+                    canvas.toBlob(async function(blob) {
+                        const file = new File([blob], fileName, { type: 'image/png' });
+                        try { await navigator.share({ files: [file] }); } catch(e) {}
+                    }, 'image/png');
+                } else {
+                    const link = document.createElement('a');
+                    link.download = fileName;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                }
+            } catch (err) {
+                document.body.removeChild(container);
+                alert('이미지 생성 오류: ' + err.message);
+            }
         });
     }
 
@@ -1197,20 +1322,46 @@ document.addEventListener('DOMContentLoaded', function() {
         // 정산완료 처리 버튼
         const markPaidBtn = document.getElementById('markPaidBtn');
         if (markPaidBtn) {
-            markPaidBtn.addEventListener('click', async function() {
+            markPaidBtn.addEventListener('click', function() {
                 const today = new Date();
                 const defaultDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-                const paidDate = prompt('정산일을 입력하세요 (YYYY-MM-DD):', defaultDate);
-                if (!paidDate) return;
-                if (!/^\d{4}-\d{2}-\d{2}$/.test(paidDate)) {
-                    alert('날짜 형식이 올바르지 않습니다. (예: 2025-03-01)');
-                    return;
-                }
-                try {
-                    await db.collection('transactions').doc(currentDetailId).update({ paymentStatus: 'paid', paidDate: paidDate });
-                    alert('💰 정산완료 처리되었습니다! (' + paidDate + ')');
-                    closeDetailModal();
-                } catch (err) { alert('❌ 오류: ' + err.message); }
+                
+                // 모달 생성
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+                overlay.innerHTML = `
+                    <div style="background:white;border-radius:16px;padding:30px;width:300px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+                        <div style="font-size:40px;margin-bottom:10px;">💰</div>
+                        <h3 style="margin:0 0 20px;font-size:18px;color:#333;">정산완료 처리</h3>
+                        <label style="font-size:14px;color:#666;display:block;margin-bottom:8px;text-align:left;">정산일 선택</label>
+                        <input type="date" id="paidDateModal" value="${defaultDate}" style="width:100%;padding:12px;border:2px solid #4CAF50;border-radius:10px;font-size:16px;box-sizing:border-box;margin-bottom:20px;">
+                        <div style="display:flex;gap:10px;">
+                            <button id="cancelPaidModal" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px;background:#f5f5f5;font-size:15px;cursor:pointer;">취소</button>
+                            <button id="confirmPaidModal" style="flex:1;padding:12px;border:none;border-radius:10px;background:#4CAF50;color:white;font-size:15px;font-weight:bold;cursor:pointer;">확인</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+
+                // 취소
+                document.getElementById('cancelPaidModal').addEventListener('click', function() {
+                    overlay.remove();
+                });
+                // 배경 클릭 닫기
+                overlay.addEventListener('click', function(ev) {
+                    if (ev.target === overlay) overlay.remove();
+                });
+                // 확인
+                document.getElementById('confirmPaidModal').addEventListener('click', async function() {
+                    const paidDate = document.getElementById('paidDateModal').value;
+                    if (!paidDate) { alert('정산일을 선택하세요.'); return; }
+                    try {
+                        await db.collection('transactions').doc(currentDetailId).update({ paymentStatus: 'paid', paidDate: paidDate });
+                        overlay.remove();
+                        alert('💰 정산완료 처리되었습니다! (' + paidDate + ')');
+                        closeDetailModal();
+                    } catch (err) { alert('❌ 오류: ' + err.message); }
+                });
             });
         }
         
