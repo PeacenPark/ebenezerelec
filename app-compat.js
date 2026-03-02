@@ -295,6 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
             laborCost: parseInt(document.getElementById('laborCost').value) || 0,
             profit: parseInt(document.getElementById('profit').value) || 0,
             paymentStatus: document.querySelector('input[name="paymentStatus"]:checked').value,
+            paymentMethod: document.getElementById('paymentMethod').value,
             notes: document.getElementById('notes').value,
             timestamp: new Date().toISOString()
         };
@@ -460,6 +461,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         <span class="icon">🔗</span>
                         ${transaction.referralSource || '미입력'}
                     </div>
+                    <div class="summary-item">
+                        <span class="icon">💳</span>
+                        ${transaction.paymentMethod || '-'}
+                    </div>
                 </div>
 
                 <div class="transaction-amount">
@@ -556,6 +561,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const paymentVal = transaction.paymentStatus || 'paid';
         const paymentRadio = document.querySelector(`input[name="paymentStatus"][value="${paymentVal}"]`);
         if (paymentRadio) paymentRadio.checked = true;
+
+        // 결제 방식 복원
+        const paymentMethodEl = document.getElementById('paymentMethod');
+        if (paymentMethodEl) paymentMethodEl.value = transaction.paymentMethod || '계좌이체';
         
         // 유입 경로 상세 필드 표시 여부
         if (transaction.referralSource === '소개' || transaction.referralSource === '기타') {
@@ -1029,6 +1038,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 '거래일': t.date,
                 '정산일': t.paidDate || '',
                 '결제상태': t.paymentStatus === 'unpaid' ? '미수금' : '정산완료',
+                '결제방식': t.paymentMethod || '',
                 '고객명': t.customerName,
                 '연락처': t.phone,
                 '지역': t.location,
@@ -1047,8 +1057,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const sumLabor = data.reduce((s, t) => s + (t.laborCost || 0), 0);
             const sumProfit = data.reduce((s, t) => s + (t.profit || 0), 0);
             rows.push({
-                '거래일': '', '정산일': '', '결제상태': '', '고객명': '',
-                '연락처': '', '지역': '', '서비스': '', '유입경로': '합계',
+                '거래일': '', '정산일': '', '결제상태': '', '결제방식': '',
+                '고객명': '', '연락처': '', '지역': '', '서비스': '',
+                '유입경로': '합계',
                 '총비용': sumTotal, '자재비': sumMaterial, '인건비': sumLabor,
                 '순이익': sumProfit, '작업내용': ''
             });
@@ -1057,7 +1068,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // 열 너비 설정
             ws['!cols'] = [
-                {wch:12},{wch:12},{wch:10},{wch:12},{wch:15},
+                {wch:12},{wch:12},{wch:10},{wch:12},{wch:12},{wch:15},
                 {wch:10},{wch:14},{wch:10},{wch:12},{wch:12},
                 {wch:12},{wch:12},{wch:40}
             ];
@@ -1123,6 +1134,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td style="padding:10px 8px;font-size:13px;">${t.paidDate || t.date}</td>
                     <td style="padding:10px 8px;font-size:13px;">${t.customerName}</td>
                     <td style="padding:10px 8px;font-size:13px;">${t.serviceType}</td>
+                    <td style="padding:10px 8px;font-size:13px;text-align:center;">${t.paymentMethod || '-'}</td>
                     <td style="padding:10px 8px;text-align:right;font-size:13px;">₩${formatNumber(t.totalCost || 0)}</td>
                     <td style="padding:10px 8px;text-align:right;font-size:13px;">₩${formatNumber(t.materialCost || 0)}</td>
                     <td style="padding:10px 8px;text-align:right;font-size:13px;">₩${formatNumber(t.laborCost || 0)}</td>
@@ -1142,6 +1154,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <th style="padding:12px 8px;text-align:left;font-size:13px;">정산일</th>
                             <th style="padding:12px 8px;text-align:left;font-size:13px;">고객명</th>
                             <th style="padding:12px 8px;text-align:left;font-size:13px;">서비스</th>
+                            <th style="padding:12px 8px;text-align:center;font-size:13px;">결제</th>
                             <th style="padding:12px 8px;text-align:right;font-size:13px;">총비용</th>
                             <th style="padding:12px 8px;text-align:right;font-size:13px;">자재비</th>
                             <th style="padding:12px 8px;text-align:right;font-size:13px;">인건비</th>
@@ -1153,7 +1166,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </tbody>
                     <tfoot>
                         <tr style="border-top:2px solid #333;background:#f8f9fa;">
-                            <td colspan="4" style="padding:12px 8px;font-size:14px;font-weight:bold;text-align:center;">합 계</td>
+                            <td colspan="5" style="padding:12px 8px;font-size:14px;font-weight:bold;text-align:center;">합 계</td>
                             <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;">₩${formatNumber(sumTotal)}</td>
                             <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;">₩${formatNumber(sumMaterial)}</td>
                             <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;">₩${formatNumber(sumLabor)}</td>
@@ -1250,6 +1263,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="detail-item-label">유입 경로</div>
                         <div class="detail-item-value">${transaction.referralSource || '미입력'}${transaction.referralDetail ? ' (' + transaction.referralDetail + ')' : ''}</div>
                     </div>
+                    <div class="detail-item-box">
+                        <div class="detail-item-label">결제 방식</div>
+                        <div class="detail-item-value">${transaction.paymentMethod || '-'}</div>
+                    </div>
                 </div>
             </div>
 
@@ -1339,7 +1356,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div style="font-size:40px;margin-bottom:10px;">💰</div>
                         <h3 style="margin:0 0 20px;font-size:18px;color:#333;">정산완료 처리</h3>
                         <label style="font-size:14px;color:#666;display:block;margin-bottom:8px;text-align:left;">정산일 선택</label>
-                        <input type="date" id="paidDateModal" value="${defaultDate}" style="width:100%;padding:12px;border:2px solid #4CAF50;border-radius:10px;font-size:16px;box-sizing:border-box;margin-bottom:20px;">
+                        <input type="date" id="paidDateModal" value="${defaultDate}" style="width:100%;padding:12px;border:2px solid #4CAF50;border-radius:10px;font-size:16px;box-sizing:border-box;margin-bottom:16px;">
+                        <label style="font-size:14px;color:#666;display:block;margin-bottom:8px;text-align:left;">결제 방식</label>
+                        <select id="paymentMethodModal" style="width:100%;padding:12px;border:2px solid #4CAF50;border-radius:10px;font-size:16px;box-sizing:border-box;margin-bottom:20px;background:white;">
+                            <option value="현금">현금</option>
+                            <option value="카드">카드</option>
+                            <option value="계좌이체" selected>계좌이체</option>
+                            <option value="페이">페이(숨고페이 등)</option>
+                        </select>
                         <div style="display:flex;gap:10px;">
                             <button id="cancelPaidModal" style="flex:1;padding:12px;border:1px solid #ddd;border-radius:10px;background:#f5f5f5;font-size:15px;cursor:pointer;">취소</button>
                             <button id="confirmPaidModal" style="flex:1;padding:12px;border:none;border-radius:10px;background:#4CAF50;color:white;font-size:15px;font-weight:bold;cursor:pointer;">확인</button>
@@ -1359,11 +1383,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 확인
                 document.getElementById('confirmPaidModal').addEventListener('click', async function() {
                     const paidDate = document.getElementById('paidDateModal').value;
+                    const paymentMethod = document.getElementById('paymentMethodModal').value;
                     if (!paidDate) { alert('정산일을 선택하세요.'); return; }
                     try {
-                        await db.collection('transactions').doc(currentDetailId).update({ paymentStatus: 'paid', paidDate: paidDate });
+                        await db.collection('transactions').doc(currentDetailId).update({ paymentStatus: 'paid', paidDate: paidDate, paymentMethod: paymentMethod });
                         overlay.remove();
-                        alert('💰 정산완료 처리되었습니다! (' + paidDate + ')');
+                        alert('💰 정산완료 처리되었습니다! (' + paidDate + ' / ' + paymentMethod + ')');
                         closeDetailModal();
                     } catch (err) { alert('❌ 오류: ' + err.message); }
                 });
