@@ -2289,6 +2289,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const isEstimate = docType === '견적서';
         const typeCls = isEstimate ? 'estimate' : 'statement';
         const includeVat = document.getElementById('invIncludeVat').checked;
+        const includeStamp = document.getElementById('invIncludeStamp').checked;
 
         // 공급자 정보
         const supplier = {
@@ -2380,7 +2381,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <table class="invoice-info-table">
                             <tr><th colspan="2" style="text-align:center;background:${isEstimate ? '#fff3e0' : '#e3f2fd'};">공급자</th></tr>
                             <tr><th>상 호</th><td>${supplier.name}</td></tr>
-                            <tr><th>대표자</th><td style="position:relative;">${supplier.ceo}<span style="position:absolute;right:30px;top:50%;transform:translateY(-50%);display:inline-block;color:#ccc;">(인)<img src="${STAMP_IMG}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;opacity:1;" alt="직인"></span></td></tr>
+                            <tr><th>대표자</th><td style="position:relative;">${supplier.ceo}<span style="position:absolute;right:30px;top:50%;transform:translateY(-50%);display:inline-block;color:#ccc;">(인)${includeStamp ? `<img src="${STAMP_IMG}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;opacity:1;" alt="직인">` : ''}</span></td></tr>
                             <tr><th>사업자번호</th><td>${supplier.bizNo}</td></tr>
                             <tr><th>주 소</th><td>${supplier.addr}</td></tr>
                             <tr><th>연락처</th><td>${supplier.tel}</td></tr>
@@ -2504,7 +2505,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .invoice-items-table tbody td { padding:9px 8px; border:1px solid #ddd; text-align:center; }
             .invoice-items-table tbody td:nth-child(2) { text-align:left; }
             .invoice-items-table tfoot td { padding:12px 8px; border:1px solid #ddd; font-weight:bold; text-align:center; background:#fafafa; }
-            .invoice-total-row { font-size:16px; text-align:right; padding:15px 0; font-weight:bold; border-top:2px solid #333; border-bottom:2px solid #333; margin-bottom:20px; }
+            .invoice-total-row { font-size:16px; text-align:center; padding:15px 0; font-weight:bold; border-top:2px solid #333; border-bottom:2px solid #333; margin-bottom:20px; }
             .invoice-notes { background:#f9f9f9; padding:15px; border-radius:5px; font-size:12px; color:#555; line-height:1.8; white-space:pre-wrap; margin-bottom:20px; }
             .invoice-footer { display:flex; justify-content:space-between; margin-top:40px; font-size:13px; }
             .invoice-stamp-area { text-align:center; width:200px; }
@@ -2678,6 +2679,7 @@ document.addEventListener('DOMContentLoaded', function() {
         saveInvoiceToDbBtn.addEventListener('click', async function() {
             const docType = document.querySelector('input[name="invoiceType"]:checked').value;
             const includeVat = document.getElementById('invIncludeVat').checked;
+            const includeStamp = document.getElementById('invIncludeStamp').checked;
 
             const supplier = {
                 name: document.getElementById('invSupplierName').value || '',
@@ -2713,6 +2715,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const invoiceData = {
                 docType,
                 includeVat,
+                includeStamp,
                 supplier,
                 client,
                 items,
@@ -2815,6 +2818,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // 부가세
             document.getElementById('invIncludeVat').checked = d.includeVat || false;
+
+            // 인감도장
+            document.getElementById('invIncludeStamp').checked = d.includeStamp || false;
 
             // 공급자
             if (d.supplier) {

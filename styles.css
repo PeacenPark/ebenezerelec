@@ -2046,7 +2046,7 @@ body {
 
 .invoice-total-row {
     font-size: 16px;
-    text-align: right;
+    text-align: center;
     padding: 15px 0;
     font-weight: bold;
     border-top: 2px solid #333;
