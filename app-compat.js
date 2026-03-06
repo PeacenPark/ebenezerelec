@@ -2222,6 +2222,52 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.overflow = 'hidden';
     }
 
+    // 빠른 견적서 작성 (거래 없이 독립 작성)
+    function openQuickEstimateModal() {
+        currentInvoiceTransactionId = null;
+
+        // 문서 유형을 견적서로 선택
+        document.querySelectorAll('input[name="invoiceType"]').forEach(r => {
+            r.checked = (r.value === '견적서');
+        });
+
+        // 부가세/인감 초기화
+        document.getElementById('invIncludeVat').checked = false;
+        document.getElementById('invIncludeStamp').checked = false;
+
+        // 공급자 기본값
+        document.getElementById('invSupplierName').value = '에벤에셀 전기';
+        document.getElementById('invSupplierCeo').value = document.getElementById('invSupplierCeo').defaultValue || '';
+        document.getElementById('invSupplierBizNo').value = document.getElementById('invSupplierBizNo').defaultValue || '';
+        document.getElementById('invSupplierAddr').value = document.getElementById('invSupplierAddr').defaultValue || '';
+        document.getElementById('invSupplierTel').value = document.getElementById('invSupplierTel').defaultValue || '';
+
+        // 공급받는자 초기화
+        document.getElementById('invClientName').value = '';
+        document.getElementById('invClientTel').value = '';
+        document.getElementById('invClientAddr').value = '';
+
+        // 품목 초기화 - 빈 품목 1개
+        const container = document.getElementById('invoiceItemsContainer');
+        container.innerHTML = '';
+        invoiceItemIdx = 0;
+        addInvoiceItem('', 1, 0);
+
+        // 비고 기본값
+        document.getElementById('invNotes').value = '계좌번호 : 국민 806801-01-334721 (변경남)';
+
+        // 미리보기 영역 초기화
+        document.getElementById('invoicePreviewArea').innerHTML = '';
+
+        invoiceFormModal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+
+    const quickEstimateBtn = document.getElementById('quickEstimateBtn');
+    if (quickEstimateBtn) {
+        quickEstimateBtn.addEventListener('click', openQuickEstimateModal);
+    }
+
     function closeInvoiceFormModal() {
         if (invoiceFormModal) {
             invoiceFormModal.classList.remove('show');

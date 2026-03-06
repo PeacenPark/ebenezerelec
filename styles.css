@@ -2134,3 +2134,25 @@ body {
 }
 .invoice-list-badge.statement { background:#e3f2fd;color:#1565C0; }
 .invoice-list-badge.estimate { background:#fff3e0;color:#e65100; }
+
+/* 빠른 견적서 플로팅 버튼 */
+.floating-estimate-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    z-index: 999;
+    padding: 14px 20px;
+    font-size: 0.95em;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.floating-estimate-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}
