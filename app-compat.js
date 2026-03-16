@@ -474,7 +474,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="amount-value">₩${formatNumber(transaction.totalCost)}</div>
                     </div>
                     <div style="text-align: right;">
-                        <span class="amount-label">순이익</span>
+                        <span class="amount-label">작업수익</span>
                         <div class="profit-value">₩${formatNumber(transaction.profit)}</div>
                     </div>
                 </div>
@@ -1048,7 +1048,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 '총비용': t.totalCost || 0,
                 '투입자재비': t.materialCost || 0,
                 '인건비': t.laborCost || 0,
-                '순이익': t.profit || 0,
+                '작업수익': t.profit || 0,
                 '작업내용': t.content || ''
             }));
 
@@ -1062,7 +1062,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 '고객명': '', '연락처': '', '지역': '', '서비스': '',
                 '유입경로': '합계',
                 '총비용': sumTotal, '투입자재비': sumMaterial, '인건비': sumLabor,
-                '순이익': sumProfit, '작업내용': ''
+                '작업수익': sumProfit, '작업내용': ''
             });
 
             const ws = XLSX.utils.json_to_sheet(rows);
@@ -1159,7 +1159,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <th style="padding:12px 8px;text-align:right;font-size:13px;">총비용</th>
                             <th style="padding:12px 8px;text-align:right;font-size:13px;">투입자재비</th>
                             <th style="padding:12px 8px;text-align:right;font-size:13px;">인건비</th>
-                            <th style="padding:12px 8px;text-align:right;font-size:13px;">순이익</th>
+                            <th style="padding:12px 8px;text-align:right;font-size:13px;">작업수익</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1311,7 +1311,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="detail-cost-value" style="color: #e91e63;">₩${formatNumber(transaction.laborCost)}</div>
                     </div>
                     <div class="detail-cost-box detail-profit">
-                        <div class="detail-cost-label">순이익</div>
+                        <div class="detail-cost-label">작업수익</div>
                         <div class="detail-cost-value">₩${formatNumber(transaction.profit)}</div>
                     </div>
                 </div>
@@ -3386,7 +3386,7 @@ function createMonthlyChart(months, data) {
                     fill: true
                 },
                 {
-                    label: '순이익',
+                    label: '작업수익',
                     data: profits,
                     backgroundColor: 'rgba(76, 175, 80, 0.1)',
                     borderColor: 'rgba(76, 175, 80, 1)',
@@ -3415,7 +3415,7 @@ function createMonthlyChart(months, data) {
                     fill: false
                 },
                 {
-                    label: '실순이익',
+                    label: '실수익',
                     data: netProfits,
                     backgroundColor: 'rgba(255, 152, 0, 0.1)',
                     borderColor: 'rgba(255, 152, 0, 1)',
@@ -3432,7 +3432,7 @@ function createMonthlyChart(months, data) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             interaction: {
                 mode: 'index',
                 intersect: false
@@ -3452,7 +3452,7 @@ function createMonthlyChart(months, data) {
                 },
                 title: {
                     display: true,
-                    text: '월별 매출·순이익·운영비·실순이익 추이 (최근 12개월)',
+                    text: '월별 매출·작업수익·운영비·실수익 추이 (최근 12개월)',
                     font: { 
                         size: 16, 
                         weight: 'bold' 
@@ -3549,7 +3549,7 @@ function createLocationChart(locations, data) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     display: true,
@@ -3610,7 +3610,7 @@ function createServiceChart(services, data) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             indexAxis: 'y',
             plugins: {
                 legend: { display: false },
@@ -3697,7 +3697,7 @@ function createReferralChart(referrals, data) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     display: true,

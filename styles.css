@@ -649,12 +649,14 @@ body {
     padding: 30px;
     border-radius: 12px;
     margin-bottom: 30px;
-    max-height: 400px;
+    min-height: 450px;
+    max-height: 500px;
     position: relative;
 }
 
 .chart-container canvas {
-    max-height: 350px;
+    min-height: 400px;
+    max-height: 450px;
 }
 
 .stats-table {
@@ -1019,11 +1021,13 @@ body {
     /* 차트 */
     .chart-container {
         padding: 15px;
-        max-height: 300px;
+        min-height: 400px;
+        max-height: 450px;
     }
     
     .chart-container canvas {
-        max-height: 250px;
+        min-height: 350px;
+        max-height: 400px;
     }
     
     /* 거래 등록 버튼 */
@@ -1234,11 +1238,13 @@ body {
     
     .chart-container {
         padding: 10px;
-        max-height: 250px;
+        min-height: 350px;
+        max-height: 450px;
     }
     
     .chart-container canvas {
-        max-height: 200px;
+        min-height: 300px;
+        max-height: 400px;
     }
 }
 
