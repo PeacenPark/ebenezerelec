@@ -2497,7 +2497,7 @@ document.addEventListener('DOMContentLoaded', function() {
             totalMat += matA; totalLab += labA; totalEtc += etcA; subTotal += rowTotal;
         });
         // 경비 = 소계 × 경비율
-        const expRate = parseFloat(document.getElementById('invExpenseRate')?.value) || 10;
+        const expRate = (() => { var v = parseFloat(document.getElementById('invExpenseRate')?.value); return isNaN(v) ? 10 : v; })();
         const expenseAmt = Math.round(subTotal * expRate / 100);
         const grandTotal = subTotal + expenseAmt;
 
@@ -2597,7 +2597,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const docNo = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}-${Math.floor(Math.random()*10)+1}`;
 
         // 경비 = 소계 × 경비율
-        const expRate = parseFloat(document.getElementById('invExpenseRate')?.value) || 10;
+        const expRate = (() => { var v = parseFloat(document.getElementById('invExpenseRate')?.value); return isNaN(v) ? 10 : v; })();
         const expenseAmt = Math.round(subTotal * expRate / 100);
         const grandTotal = subTotal + expenseAmt;
 
@@ -3068,7 +3068,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            const expRate = parseFloat(document.getElementById('invExpenseRate')?.value) || 10;
+            const expRate = (() => { var v = parseFloat(document.getElementById('invExpenseRate')?.value); return isNaN(v) ? 10 : v; })();
             const expenseAmt = Math.round(grandTotal * expRate / 100);
             const grandTotalWithExp = grandTotal + expenseAmt;
             const notes = document.getElementById('invNotes').value || '';
