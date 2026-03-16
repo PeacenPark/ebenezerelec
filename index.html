@@ -676,136 +676,139 @@
 
     <!-- 거래명세서 작성 모달 -->
     <div class="modal" id="invoiceFormModal">
-        <div class="modal-content" style="max-width:600px;">
-            <div class="modal-header">
-                <h2 class="section-title" style="border-bottom-color: #2196F3;">📄 거래명세서 / 견적서 작성</h2>
+        <div class="modal-content" style="max-width:1200px;width:95%;padding:0;">
+            <div class="modal-header" style="padding:12px 20px;">
+                <h2 class="section-title" style="border-bottom-color: #2196F3;margin:0;">📄 거래명세서 / 견적서 작성</h2>
                 <div style="display:flex;gap:8px;align-items:center;">
                     <button class="btn btn-primary" id="showInvoiceListBtn" style="background:#ff9800;font-size:0.8em;padding:6px 12px;">📋 저장목록</button>
                     <button class="modal-close" id="closeInvoiceFormBtn">&times;</button>
                 </div>
             </div>
+            <div style="padding:15px 20px;overflow:auto;max-height:75vh;-webkit-overflow-scrolling:touch;">
             <form id="invoiceForm">
-                <!-- 문서 유형 선택 -->
-                <div class="form-group">
-                    <label>문서 유형</label>
-                    <div class="payment-status-group">
-                        <label class="payment-radio-label" style="border-color:#2196F3;">
+                <!-- 상단 옵션: 문서유형 / 부가세 / 인감 -->
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+                    <div class="payment-status-group" style="margin:0;">
+                        <label class="payment-radio-label" style="border-color:#2196F3;margin:0;padding:6px 12px;">
                             <input type="radio" name="invoiceType" value="거래명세서" checked style="accent-color:#2196F3;">
                             <span class="payment-radio-text">📄 거래명세서</span>
                         </label>
-                        <label class="payment-radio-label" style="border-color:#ff9800;">
+                        <label class="payment-radio-label" style="border-color:#ff9800;margin:0;padding:6px 12px;">
                             <input type="radio" name="invoiceType" value="견적서" style="accent-color:#ff9800;">
                             <span class="payment-radio-text">📋 견적서</span>
                         </label>
                     </div>
-                </div>
-
-                <!-- 부가세 포함 여부 -->
-                <div class="form-group">
-                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                        <input type="checkbox" id="invIncludeVat" style="width:18px;height:18px;accent-color:#2196F3;">
-                        <span>부가세(VAT) 표기 포함</span>
-                        <small style="color:#999;">(체크 시 공급가/부가세 분리 표기)</small>
+                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.85em;">
+                        <input type="checkbox" id="invIncludeVat" style="width:16px;height:16px;accent-color:#2196F3;">
+                        <span>부가세 포함</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.85em;">
+                        <input type="checkbox" id="invIncludeStamp" style="width:16px;height:16px;accent-color:#e91e63;">
+                        <span>🔴 인감도장</span>
                     </label>
                 </div>
 
-                <!-- 인감도장 포함 여부 -->
-                <div class="form-group">
-                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                        <input type="checkbox" id="invIncludeStamp" style="width:18px;height:18px;accent-color:#e91e63;">
-                        <span>🔴 인감도장 포함</span>
-                        <small style="color:#999;">(체크 시 공급자 대표자명 옆에 직인 표시)</small>
-                    </label>
-                </div>
-
-                <!-- 공급자 정보 -->
-                <div class="invoice-section-title">🏢 공급자 정보</div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="invSupplierName">상호 *</label>
-                        <input type="text" id="invSupplierName" value="에벤에셀 전기" required>
+                <!-- 공급자 / 공급받는자 가로 배치 -->
+                <div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:280px;">
+                        <table class="invoice-info-table" style="font-size:13px;">
+                            <tr><th colspan="2" style="text-align:center;background:#e3f2fd;">공급자</th></tr>
+                            <tr><th style="width:70px;">상호</th><td><input type="text" id="invSupplierName" value="에벤에셀 전기" style="width:100%;border:none;outline:none;font-size:13px;"></td></tr>
+                            <tr><th>대표자</th><td><input type="text" id="invSupplierCeo" value="변경남" style="width:100%;border:none;outline:none;font-size:13px;"></td></tr>
+                            <tr><th>사업자번호</th><td><input type="text" id="invSupplierBizNo" value="856-49-01003" style="width:100%;border:none;outline:none;font-size:13px;"></td></tr>
+                            <tr><th>주소</th><td><input type="text" id="invSupplierAddr" value="경기도 용인시 처인구 금학로 91" style="width:100%;border:none;outline:none;font-size:13px;"></td></tr>
+                            <tr><th>연락처</th><td><input type="text" id="invSupplierTel" value="010-6595-5119" style="width:100%;border:none;outline:none;font-size:13px;"></td></tr>
+                        </table>
                     </div>
-                    <div class="form-group">
-                        <label for="invSupplierCeo">대표자</label>
-                        <input type="text" id="invSupplierCeo" value="변경남">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="invSupplierAddr">주소</label>
-                    <input type="text" id="invSupplierAddr" value="경기도 용인시 처인구 금학로 91">
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="invSupplierBizNo">사업자번호</label>
-                        <input type="text" id="invSupplierBizNo" value="856-49-01003">
-                    </div>
-                    <div class="form-group">
-                        <label for="invSupplierTel">연락처</label>
-                        <input type="text" id="invSupplierTel" value="010-6595-5119">
+                    <div style="flex:1;min-width:280px;">
+                        <table class="invoice-info-table" style="font-size:13px;">
+                            <tr><th colspan="2" style="text-align:center;background:#f5f5f5;">공급받는자</th></tr>
+                            <tr><th style="width:70px;">상호(이름)</th><td><input type="text" id="invClientName" placeholder="고객명" style="width:100%;border:none;outline:none;font-size:13px;" required></td></tr>
+                            <tr><th>연락처</th><td><input type="text" id="invClientTel" placeholder="연락처" style="width:100%;border:none;outline:none;font-size:13px;"></td></tr>
+                            <tr><th>주소</th><td><input type="text" id="invClientAddr" placeholder="주소" style="width:100%;border:none;outline:none;font-size:13px;"></td></tr>
+                        </table>
                     </div>
                 </div>
 
-                <!-- 공급받는자 정보 -->
-                <div class="invoice-section-title">👤 공급받는자 정보</div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="invClientName">고객명(상호) *</label>
-                        <input type="text" id="invClientName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="invClientTel">연락처</label>
-                        <input type="text" id="invClientTel">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="invClientAddr">주소</label>
-                    <input type="text" id="invClientAddr">
-                </div>
-
-                <!-- 품목 -->
-                <div class="invoice-section-title">📦 품목 내역</div>
-                <div id="invoiceItemsContainer">
-                    <div class="invoice-item-row" data-idx="0">
-                        <div class="form-row">
-                            <div class="form-group" style="flex:3;">
-                                <label>품목명</label>
-                                <input type="text" class="inv-item-name" placeholder="품목명">
-                            </div>
-                            <div class="form-group" style="flex:1;">
-                                <label>수량</label>
-                                <input type="number" class="inv-item-qty" value="1" min="1">
-                            </div>
-                            <div class="form-group" style="flex:2;">
-                                <label>단가</label>
-                                <input type="number" class="inv-item-price" min="0" value="0">
-                            </div>
-                        </div>
-                    </div>
+                <!-- 품목 테이블 직접 입력 -->
+                <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:10px;">
+                <table class="invoice-items-table" id="invoiceEditTable" style="font-size:13px;">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" style="width:30px;">No</th>
+                            <th rowspan="2" style="min-width:100px;">품 목</th>
+                            <th rowspan="2">규격</th>
+                            <th rowspan="2">단위</th>
+                            <th rowspan="2">수량</th>
+                            <th colspan="2">재료비</th>
+                            <th colspan="2">노무비</th>
+                            <th colspan="2">기타</th>
+                            <th rowspan="2">합계</th>
+                            <th rowspan="2">비고</th>
+                            <th rowspan="2" style="width:30px;"></th>
+                        </tr>
+                        <tr>
+                            <th>단가</th><th>금액</th>
+                            <th>단가</th><th>금액</th>
+                            <th>단가</th><th>금액</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoiceItemsBody">
+                    </tbody>
+                    <tfoot id="invoiceItemsFoot">
+                        <tr style="background:#f0f0f0;">
+                            <td colspan="5" style="text-align:center;font-weight:bold;">소 계</td>
+                            <td></td><td id="footMatTotal"></td>
+                            <td></td><td id="footLabTotal"></td>
+                            <td></td><td id="footEtcTotal"></td>
+                            <td id="footSubTotal" style="font-weight:bold;"></td>
+                            <td></td><td></td>
+                        </tr>
+                        <tr>
+                            <td colspan="5" style="text-align:center;font-weight:bold;">경비 (<input type="number" id="invExpenseRate" value="10" min="0" max="100" style="width:40px;border:1px solid #ddd;border-radius:3px;text-align:center;font-size:12px;">%)</td>
+                            <td colspan="7"></td>
+                            <td id="footExpenseTotal" style="font-weight:bold;"></td>
+                            <td></td>
+                        </tr>
+                        <tr style="background:#e8eaf6;">
+                            <td colspan="5" style="text-align:center;font-weight:bold;font-size:14px;">합 계</td>
+                            <td colspan="7"></td>
+                            <td id="footGrandTotal" style="font-size:15px;font-weight:bold;"></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
                 </div>
                 <button type="button" class="btn-add-item" id="addInvoiceItemBtn">+ 품목 추가</button>
 
                 <!-- 비고 -->
-                <div class="form-group" style="margin-top:15px;">
+                <div class="form-group" style="margin-top:12px;">
                     <label for="invNotes">비고</label>
-                    <textarea id="invNotes" placeholder="추가 참고사항, 계좌번호 등">계좌번호 : 국민 806801-01-334721 (변경남)</textarea>
+                    <textarea id="invNotes" placeholder="추가 참고사항, 계좌번호 등" style="font-size:13px;">계좌번호 : 국민 806801-01-334721 (변경남)</textarea>
                 </div>
 
-                <button type="button" class="btn btn-primary" id="previewInvoiceBtn" style="background:linear-gradient(135deg,#2196F3,#1976D2);">
-                    👁️ 미리보기
-                </button>
+                <div style="display:flex;gap:10px;justify-content:center;margin-top:12px;">
+                    <button type="button" class="btn btn-primary" id="previewInvoiceBtn" style="background:linear-gradient(135deg,#2196F3,#1976D2);">
+                        👁️ 미리보기
+                    </button>
+                </div>
+            </form>
+            </div>
+        </div>
+    </div>
             </form>
         </div>
     </div>
 
     <!-- 명세서 미리보기 모달 -->
     <div class="modal" id="invoicePreviewModal">
-        <div class="modal-content" style="max-width:800px;padding:0;">
-            <div class="modal-header" style="padding:15px 20px;">
+        <div class="modal-content" style="max-width:1200px;padding:0;width:95%;">
+            <div class="modal-header" style="padding:12px 20px;">
                 <h2 style="font-size:1.1em;">📄 미리보기</h2>
                 <button class="modal-close" id="closeInvoicePreviewBtn">&times;</button>
             </div>
-            <div id="invoicePreviewArea" style="padding:20px;background:#f5f5f5;overflow:auto;max-height:70vh;-webkit-overflow-scrolling:touch;"></div>
-            <div style="padding:15px 20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;border-top:1px solid #e0e0e0;">
+            <div id="invoicePreviewArea" style="padding:15px;background:#f5f5f5;overflow:auto;max-height:75vh;-webkit-overflow-scrolling:touch;"></div>
+            <div style="padding:12px 20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;border-top:1px solid #e0e0e0;">
                 <button class="btn btn-primary" id="saveInvoiceToDbBtn" style="background:#ff9800;">💾 저장</button>
                 <button class="btn btn-primary" id="printInvoiceBtn" style="background:#2196F3;">🖨️ 인쇄</button>
                 <button class="btn btn-primary" id="saveInvoiceImgBtn" style="background:#4CAF50;">📷 이미지 저장</button>

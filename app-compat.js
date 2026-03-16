@@ -2209,9 +2209,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('invClientAddr').value = (transaction.location || '') + ' ' + (transaction.detailedLocation || '');
 
         // 품목 초기화 - 작업 내용을 첫번째 품목으로
-        const container = document.getElementById('invoiceItemsContainer');
-        container.innerHTML = '';
-        addInvoiceItem(transaction.content || transaction.serviceType || '', 1, transaction.totalCost || 0);
+        const tbody = document.getElementById('invoiceItemsBody');
+        if (tbody) tbody.innerHTML = '';
+        invoiceItemIdx = 0;
+        addInvoiceItem(transaction.content || transaction.serviceType || '', 1, transaction.totalCost || 0, 'mat', '', '', '');
 
         // 비고 - 기본값(계좌) + 거래 비고
         const defaultNotes = '계좌번호 : 국민 806801-01-334721 (변경남)';
@@ -2248,10 +2249,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('invClientAddr').value = '';
 
         // 품목 초기화 - 빈 품목 1개
-        const container = document.getElementById('invoiceItemsContainer');
-        container.innerHTML = '';
+        const tbody = document.getElementById('invoiceItemsBody');
+        if (tbody) tbody.innerHTML = '';
         invoiceItemIdx = 0;
-        addInvoiceItem('', 1, 0);
+        addInvoiceItem('', 1, 0, 'mat', '', '', '');
 
         // 비고 기본값
         document.getElementById('invNotes').value = '계좌번호 : 국민 806801-01-334721 (변경남)';
@@ -2287,36 +2288,121 @@ document.addEventListener('DOMContentLoaded', function() {
         if (event.target === invoicePreviewModal) closeInvoicePreviewModal();
     });
 
-    // 품목 추가
+    // 품목 추가 (테이블 행 방식)
     let invoiceItemIdx = 0;
-    function addInvoiceItem(name, qty, price) {
-        const container = document.getElementById('invoiceItemsContainer');
-        const row = document.createElement('div');
-        row.className = 'invoice-item-row';
-        row.dataset.idx = invoiceItemIdx++;
-        row.innerHTML = `
-            <button type="button" class="btn-remove-item" onclick="this.parentElement.remove()">✕</button>
-            <div class="form-row">
-                <div class="form-group" style="flex:3;">
-                    <label>품목명</label>
-                    <input type="text" class="inv-item-name" placeholder="품목명" value="${name || ''}">
-                </div>
-                <div class="form-group" style="flex:1;">
-                    <label>수량</label>
-                    <input type="number" class="inv-item-qty" value="${qty || 1}" min="1">
-                </div>
-                <div class="form-group" style="flex:2;">
-                    <label>단가</label>
-                    <input type="number" class="inv-item-price" min="0" value="${price || 0}">
-                </div>
-            </div>`;
-        container.appendChild(row);
+    function addInvoiceItem(name, qty, unitPrice, costType, spec, unit, remark) {
+        costType = costType || 'mat';
+        const tbody = document.getElementById('invoiceItemsBody');
+        if (!tbody) return;
+        const idx = invoiceItemIdx++;
+        const tr = document.createElement('tr');
+        tr.dataset.idx = idx;
+        tr.className = 'inv-edit-row';
+        const inputStyle = 'width:100%;border:none;outline:none;background:transparent;text-align:center;font-size:12px;padding:2px;';
+        const numStyle = inputStyle + 'text-align:right;';
+
+        tr.innerHTML = `
+            <td style="text-align:center;">${idx + 1}</td>
+            <td><input type="text" class="inv-item-name" style="${inputStyle}text-align:left;" value="${name || ''}" placeholder="품목명"></td>
+            <td><input type="text" class="inv-item-spec" style="${inputStyle}" value="${spec || ''}" placeholder="규격"></td>
+            <td><input type="text" class="inv-item-unit" style="${inputStyle}" value="${unit || ''}" placeholder="식"></td>
+            <td><input type="number" class="inv-item-qty" style="${numStyle}" value="${qty || 1}" min="0" step="any"></td>
+            <td><input type="number" class="inv-item-mat-price" style="${numStyle}" value="${costType === 'mat' ? (unitPrice || 0) : 0}" min="0"></td>
+            <td class="inv-cell-mat-amt" style="text-align:right;font-size:12px;"></td>
+            <td><input type="number" class="inv-item-lab-price" style="${numStyle}" value="${costType === 'lab' ? (unitPrice || 0) : 0}" min="0"></td>
+            <td class="inv-cell-lab-amt" style="text-align:right;font-size:12px;"></td>
+            <td><input type="number" class="inv-item-etc-price" style="${numStyle}" value="${costType === 'etc' ? (unitPrice || 0) : 0}" min="0"></td>
+            <td class="inv-cell-etc-amt" style="text-align:right;font-size:12px;"></td>
+            <td class="inv-cell-total" style="text-align:right;font-weight:bold;font-size:12px;"></td>
+            <td><input type="text" class="inv-item-remark" style="${inputStyle}" value="${remark || ''}" placeholder=""></td>
+            <td style="text-align:center;"><button type="button" style="border:none;background:none;color:#f44336;cursor:pointer;font-size:16px;padding:2px;" onclick="this.closest('tr').remove();recalcInvoiceTotals();">✕</button></td>
+        `;
+        tbody.appendChild(tr);
+
+        // 입력 변경 시 자동 계산
+        tr.querySelectorAll('input[type=number]').forEach(inp => {
+            inp.addEventListener('input', recalcInvoiceTotals);
+        });
+        recalcInvoiceTotals();
+    }
+
+    // 전체 합계 재계산
+    // 개별 단가를 직접 지정해서 행 추가 (불러오기용)
+    function addInvoiceItemDirect(name, qty, matP, labP, expP, etcP, spec, unit, remark) {
+        const tbody = document.getElementById('invoiceItemsBody');
+        if (!tbody) return;
+        const idx = invoiceItemIdx++;
+        const tr = document.createElement('tr');
+        tr.dataset.idx = idx;
+        tr.className = 'inv-edit-row';
+        const inputStyle = 'width:100%;border:none;outline:none;background:transparent;text-align:center;font-size:12px;padding:2px;';
+        const numStyle = inputStyle + 'text-align:right;';
+        // 경비는 하단 별도이므로 기타에 합산
+        const combinedEtc = (etcP || 0) + (expP || 0);
+        tr.innerHTML = `
+            <td style="text-align:center;">${idx + 1}</td>
+            <td><input type="text" class="inv-item-name" style="${inputStyle}text-align:left;" value="${name || ''}" placeholder="품목명"></td>
+            <td><input type="text" class="inv-item-spec" style="${inputStyle}" value="${spec || ''}" placeholder="규격"></td>
+            <td><input type="text" class="inv-item-unit" style="${inputStyle}" value="${unit || ''}" placeholder="식"></td>
+            <td><input type="number" class="inv-item-qty" style="${numStyle}" value="${qty || 1}" min="0" step="any"></td>
+            <td><input type="number" class="inv-item-mat-price" style="${numStyle}" value="${matP || 0}" min="0"></td>
+            <td class="inv-cell-mat-amt" style="text-align:right;font-size:12px;"></td>
+            <td><input type="number" class="inv-item-lab-price" style="${numStyle}" value="${labP || 0}" min="0"></td>
+            <td class="inv-cell-lab-amt" style="text-align:right;font-size:12px;"></td>
+            <td><input type="number" class="inv-item-etc-price" style="${numStyle}" value="${combinedEtc}" min="0"></td>
+            <td class="inv-cell-etc-amt" style="text-align:right;font-size:12px;"></td>
+            <td class="inv-cell-total" style="text-align:right;font-weight:bold;font-size:12px;"></td>
+            <td><input type="text" class="inv-item-remark" style="${inputStyle}" value="${remark || ''}" placeholder=""></td>
+            <td style="text-align:center;"><button type="button" style="border:none;background:none;color:#f44336;cursor:pointer;font-size:16px;padding:2px;" onclick="this.closest('tr').remove();recalcInvoiceTotals();">✕</button></td>
+        `;
+        tbody.appendChild(tr);
+        tr.querySelectorAll('input[type=number]').forEach(inp => {
+            inp.addEventListener('input', recalcInvoiceTotals);
+        });
+        recalcInvoiceTotals();
+    }
+
+    window.recalcInvoiceTotals = function() {
+        const rows = document.querySelectorAll('#invoiceItemsBody .inv-edit-row');
+        let totalMat = 0, totalLab = 0, totalEtc = 0, subTotal = 0;
+        rows.forEach(row => {
+            const qty = parseFloat(row.querySelector('.inv-item-qty')?.value) || 0;
+            const matP = parseInt(row.querySelector('.inv-item-mat-price')?.value) || 0;
+            const labP = parseInt(row.querySelector('.inv-item-lab-price')?.value) || 0;
+            const etcP = parseInt(row.querySelector('.inv-item-etc-price')?.value) || 0;
+            const matA = qty * matP, labA = qty * labP, etcA = qty * etcP;
+            const rowTotal = matA + labA + etcA;
+            row.querySelector('.inv-cell-mat-amt').textContent = matA ? matA.toLocaleString() : '';
+            row.querySelector('.inv-cell-lab-amt').textContent = labA ? labA.toLocaleString() : '';
+            row.querySelector('.inv-cell-etc-amt').textContent = etcA ? etcA.toLocaleString() : '';
+            row.querySelector('.inv-cell-total').textContent = rowTotal ? rowTotal.toLocaleString() : '';
+            totalMat += matA; totalLab += labA; totalEtc += etcA; subTotal += rowTotal;
+        });
+        // 경비 = 소계 × 경비율
+        const expRate = parseFloat(document.getElementById('invExpenseRate')?.value) || 10;
+        const expenseAmt = Math.round(subTotal * expRate / 100);
+        const grandTotal = subTotal + expenseAmt;
+
+        const fmt = v => v ? '₩ ' + v.toLocaleString() : '';
+        const el = id => document.getElementById(id);
+        if (el('footMatTotal')) el('footMatTotal').textContent = fmt(totalMat);
+        if (el('footLabTotal')) el('footLabTotal').textContent = fmt(totalLab);
+        if (el('footEtcTotal')) el('footEtcTotal').textContent = fmt(totalEtc);
+        if (el('footSubTotal')) el('footSubTotal').textContent = fmt(subTotal);
+        if (el('footExpenseTotal')) el('footExpenseTotal').textContent = fmt(expenseAmt);
+        if (el('footGrandTotal')) el('footGrandTotal').textContent = fmt(grandTotal);
+    };
+
+    // 경비율 변경 시에도 재계산
+    const expRateInput = document.getElementById('invExpenseRate');
+    if (expRateInput) {
+        expRateInput.addEventListener('input', recalcInvoiceTotals);
     }
 
     const addInvoiceItemBtn = document.getElementById('addInvoiceItemBtn');
     if (addInvoiceItemBtn) {
         addInvoiceItemBtn.addEventListener('click', function() {
-            addInvoiceItem('', 1, 0);
+            addInvoiceItem('', 1, 0, 'mat', '', '', '');
         });
     }
 
@@ -2354,17 +2440,28 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         // 품목 수집
-        const itemRows = document.querySelectorAll('.invoice-item-row');
+        const itemRows = document.querySelectorAll('#invoiceItemsBody .inv-edit-row');
         const items = [];
-        let grandTotal = 0;
+        let totalMat = 0, totalLab = 0, totalEtc = 0, subTotal = 0;
         itemRows.forEach((row, idx) => {
-            const name = row.querySelector('.inv-item-name').value || '';
-            const qty = parseInt(row.querySelector('.inv-item-qty').value) || 0;
-            const price = parseInt(row.querySelector('.inv-item-price').value) || 0;
-            const amount = qty * price;
+            const name = row.querySelector('.inv-item-name')?.value || '';
+            const spec = row.querySelector('.inv-item-spec')?.value || '';
+            const unit = row.querySelector('.inv-item-unit')?.value || '';
+            const qty = parseFloat(row.querySelector('.inv-item-qty')?.value) || 0;
+            const matPrice = parseInt(row.querySelector('.inv-item-mat-price')?.value) || 0;
+            const labPrice = parseInt(row.querySelector('.inv-item-lab-price')?.value) || 0;
+            const etcPrice = parseInt(row.querySelector('.inv-item-etc-price')?.value) || 0;
+            const remark = row.querySelector('.inv-item-remark')?.value || '';
+            const matAmt = qty * matPrice;
+            const labAmt = qty * labPrice;
+            const etcAmt = qty * etcPrice;
+            const amount = matAmt + labAmt + etcAmt;
             if (name) {
-                items.push({ no: idx + 1, name, qty, price, amount });
-                grandTotal += amount;
+                items.push({ no: idx + 1, name, spec, unit, qty, matPrice, matAmt, labPrice, labAmt, etcPrice, etcAmt, amount, remark });
+                totalMat += matAmt;
+                totalLab += labAmt;
+                totalEtc += etcAmt;
+                subTotal += amount;
             }
         });
 
@@ -2373,43 +2470,86 @@ document.addEventListener('DOMContentLoaded', function() {
         const dateStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
         const docNo = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}-${Math.floor(Math.random()*10)+1}`;
 
-        // VAT 계산: 현금가(grandTotal) 기준, 체크 시 10% 추가
-        const supplyAmount = grandTotal; // 공급가 = 현금가 그대로
+        // 경비 = 소계 × 경비율
+        const expRate = parseFloat(document.getElementById('invExpenseRate')?.value) || 10;
+        const expenseAmt = Math.round(subTotal * expRate / 100);
+        const grandTotal = subTotal + expenseAmt;
+
+        // VAT 계산
+        const supplyAmount = grandTotal;
         const vat = includeVat ? Math.round(grandTotal * 0.1) : 0;
         const finalTotal = includeVat ? grandTotal + vat : grandTotal;
 
         // 빈 행 추가 (최소 5행)
         while (items.length < 5) {
-            items.push({ no: '', name: '', qty: '', price: '', amount: '' });
+            items.push({ no: '', name: '', spec: '', unit: '', qty: '', matPrice: '', matAmt: '', labPrice: '', labAmt: '', etcPrice: '', etcAmt: '', amount: '', remark: '' });
         }
 
         const itemsHtml = items.map(item => `
             <tr>
                 <td>${item.no}</td>
-                <td>${item.name}</td>
+                <td style="text-align:left;">${item.name}</td>
+                <td>${item.spec}</td>
+                <td>${item.unit}</td>
                 <td>${item.qty !== '' ? item.qty : ''}</td>
-                <td>${item.price !== '' ? Number(item.price).toLocaleString() : ''}</td>
-                <td>${item.amount !== '' ? Number(item.amount).toLocaleString() : ''}</td>
+                <td>${item.matPrice !== '' && item.matPrice ? Number(item.matPrice).toLocaleString() : ''}</td>
+                <td>${item.matAmt !== '' && item.matAmt ? Number(item.matAmt).toLocaleString() : ''}</td>
+                <td>${item.labPrice !== '' && item.labPrice ? Number(item.labPrice).toLocaleString() : ''}</td>
+                <td>${item.labAmt !== '' && item.labAmt ? Number(item.labAmt).toLocaleString() : ''}</td>
+                <td>${item.etcPrice !== '' && item.etcPrice ? Number(item.etcPrice).toLocaleString() : ''}</td>
+                <td>${item.etcAmt !== '' && item.etcAmt ? Number(item.etcAmt).toLocaleString() : ''}</td>
+                <td style="font-weight:bold;">${item.amount !== '' && item.amount ? Number(item.amount).toLocaleString() : ''}</td>
+                <td>${item.remark}</td>
             </tr>
         `).join('');
 
         // 합계 tfoot
         const tfootHtml = includeVat
-            ? `<tr>
-                <td colspan="4" style="text-align:center;font-weight:bold;">공급가액</td>
-                <td style="font-size:14px;">₩ ${supplyAmount.toLocaleString()}</td>
+            ? `<tr style="background:#f0f0f0;">
+                <td colspan="5" style="text-align:center;font-weight:bold;">소 계</td>
+                <td></td><td style="font-weight:bold;">${totalMat ? '₩ '+totalMat.toLocaleString() : ''}</td>
+                <td></td><td style="font-weight:bold;">${totalLab ? '₩ '+totalLab.toLocaleString() : ''}</td>
+                <td></td><td style="font-weight:bold;">${totalEtc ? '₩ '+totalEtc.toLocaleString() : ''}</td>
+                <td style="font-weight:bold;">₩ ${subTotal.toLocaleString()}</td>
+                <td></td>
                </tr>
                <tr>
-                <td colspan="4" style="text-align:center;font-weight:bold;">부가세 (10%)</td>
-                <td style="font-size:14px;">₩ ${vat.toLocaleString()}</td>
+                <td colspan="5" style="text-align:center;font-weight:bold;">경비 (${expRate}%)</td>
+                <td colspan="6"></td>
+                <td style="font-weight:bold;">₩ ${expenseAmt.toLocaleString()}</td>
+                <td></td>
                </tr>
-               <tr style="background:#f0f0f0;">
-                <td colspan="4" style="text-align:center;font-weight:bold;font-size:15px;">합 계</td>
-                <td style="font-size:16px;font-weight:bold;">₩ ${finalTotal.toLocaleString()}</td>
+               <tr>
+                <td colspan="5" style="text-align:center;font-weight:bold;">부가세 (10%)</td>
+                <td colspan="6"></td>
+                <td style="font-weight:bold;">₩ ${vat.toLocaleString()}</td>
+                <td></td>
+               </tr>
+               <tr style="background:#e8eaf6;">
+                <td colspan="5" style="text-align:center;font-weight:bold;font-size:14px;">합 계</td>
+                <td colspan="6"></td>
+                <td style="font-size:15px;font-weight:bold;">₩ ${finalTotal.toLocaleString()}</td>
+                <td></td>
                </tr>`
-            : `<tr>
-                <td colspan="4" style="text-align:center;font-weight:bold;">합 계</td>
-                <td style="font-size:15px;">₩ ${grandTotal.toLocaleString()}</td>
+            : `<tr style="background:#f0f0f0;">
+                <td colspan="5" style="text-align:center;font-weight:bold;">소 계</td>
+                <td></td><td style="font-weight:bold;">${totalMat ? '₩ '+totalMat.toLocaleString() : ''}</td>
+                <td></td><td style="font-weight:bold;">${totalLab ? '₩ '+totalLab.toLocaleString() : ''}</td>
+                <td></td><td style="font-weight:bold;">${totalEtc ? '₩ '+totalEtc.toLocaleString() : ''}</td>
+                <td style="font-weight:bold;">₩ ${subTotal.toLocaleString()}</td>
+                <td></td>
+               </tr>
+               <tr>
+                <td colspan="5" style="text-align:center;font-weight:bold;">경비 (${expRate}%)</td>
+                <td colspan="6"></td>
+                <td style="font-weight:bold;">₩ ${expenseAmt.toLocaleString()}</td>
+                <td></td>
+               </tr>
+               <tr style="background:#e8eaf6;">
+                <td colspan="5" style="text-align:center;font-weight:bold;font-size:14px;">합 계</td>
+                <td colspan="6"></td>
+                <td style="font-size:14px;font-weight:bold;">₩ ${grandTotal.toLocaleString()}</td>
+                <td></td>
                </tr>`;
 
         // 총 금액 행
@@ -2419,15 +2559,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const html = `
             <div class="invoice-doc" id="invoiceDocContent">
-                <div class="invoice-doc-title ${typeCls}">${docType}</div>
-                <div class="invoice-doc-no">No. ${docNo} &nbsp;|&nbsp; ${dateStr}</div>
+                <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:15px;">
+                    <div class="invoice-doc-no" style="margin:0;text-align:left;">No. ${docNo}</div>
+                    <div class="invoice-doc-title ${typeCls}" style="margin:0;border:none;padding:0;flex:1;text-align:center;">${docType}</div>
+                    <div class="invoice-doc-no" style="margin:0;text-align:right;">${dateStr}</div>
+                </div>
+                <div style="border-bottom:3px double ${isEstimate ? '#e65100' : '#1565C0'};margin-bottom:18px;"></div>
 
-                <div style="display:flex;gap:15px;margin-bottom:20px;">
+                <div style="display:flex;gap:12px;margin-bottom:15px;">
                     <div style="flex:1;">
                         <table class="invoice-info-table">
                             <tr><th colspan="2" style="text-align:center;background:${isEstimate ? '#fff3e0' : '#e3f2fd'};">공급자</th></tr>
                             <tr><th>상 호</th><td>${supplier.name}</td></tr>
-                            <tr><th>대표자</th><td style="position:relative;">${supplier.ceo}<span style="position:absolute;right:30px;top:50%;transform:translateY(-50%);display:inline-block;color:#ccc;">(인)${includeStamp ? `<img src="${STAMP_IMG}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;opacity:1;" alt="직인">` : ''}</span></td></tr>
+                            <tr><th>대표자</th><td style="position:relative;">${supplier.ceo}<span style="position:absolute;right:20px;top:50%;transform:translateY(-50%);display:inline-block;color:#ccc;">(인)${includeStamp ? `<img src="${STAMP_IMG}" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;opacity:1;" alt="직인">` : ''}</span></td></tr>
                             <tr><th>사업자번호</th><td>${supplier.bizNo}</td></tr>
                             <tr><th>주 소</th><td>${supplier.addr}</td></tr>
                             <tr><th>연락처</th><td>${supplier.tel}</td></tr>
@@ -2436,10 +2580,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div style="flex:1;">
                         <table class="invoice-info-table">
                             <tr><th colspan="2" style="text-align:center;background:#f5f5f5;">공급받는자</th></tr>
-                            <tr><th>상호(이름)</th><td style="position:relative;">${client.name}<span style="position:absolute;right:30px;top:50%;transform:translateY(-50%);color:#ccc;">(인)</span></td></tr>
+                            <tr><th>상호(이름)</th><td style="position:relative;">${client.name}<span style="position:absolute;right:20px;top:50%;transform:translateY(-50%);color:#ccc;">(인)</span></td></tr>
                             <tr><th>연락처</th><td>${client.tel}</td></tr>
                             <tr><th>주 소</th><td>${client.addr}</td></tr>
-                            <tr><th colspan="2" style="text-align:center;padding:14px;font-size:12px;color:#999;">아래와 같이 ${isEstimate ? '견적' : '거래 내역을 명세'}합니다.</th></tr>
+                            <tr><th colspan="2" style="text-align:center;padding:10px;font-size:11px;color:#999;">아래와 같이 ${isEstimate ? '견적' : '거래 내역을 명세'}합니다.</th></tr>
                         </table>
                     </div>
                 </div>
@@ -2447,11 +2591,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 <table class="invoice-items-table ${typeCls}">
                     <thead>
                         <tr>
-                            <th style="width:40px;">No</th>
-                            <th>품 목</th>
-                            <th style="width:60px;">수량</th>
-                            <th style="width:100px;">단가</th>
-                            <th style="width:120px;">금액</th>
+                            <th rowspan="2">No</th>
+                            <th rowspan="2">품 목</th>
+                            <th rowspan="2">규격</th>
+                            <th rowspan="2">단위</th>
+                            <th rowspan="2">수량</th>
+                            <th colspan="2">재료비</th>
+                            <th colspan="2">노무비</th>
+                            <th colspan="2">기타</th>
+                            <th rowspan="2">합계</th>
+                            <th rowspan="2">비고</th>
+                        </tr>
+                        <tr>
+                            <th>단가</th><th>금액</th>
+                            <th>단가</th><th>금액</th>
+                            <th>단가</th><th>금액</th>
                         </tr>
                     </thead>
                     <tbody>${itemsHtml}</tbody>
@@ -2460,7 +2614,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 <div class="invoice-total-row">${totalRowHtml}</div>
 
-                ${notes ? `<div class="invoice-notes"><strong>비고</strong><br><span style="font-size:15px;font-weight:700;color:#333;">${notes.replace(/\n/g, '<br>')}</span></div>` : ''}
+                ${notes ? `<div class="invoice-notes"><strong>비고</strong><br><span style="font-size:13px;font-weight:700;color:#333;">${notes.replace(/\n/g, '<br>')}</span></div>` : ''}
             </div>
         `;
 
@@ -2478,7 +2632,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const docEl = document.getElementById('invoiceDocContent');
                 if (docEl && previewArea) {
                     const areaWidth = previewArea.clientWidth;
-                    const docWidth = 720;
+                    const docWidth = 1100;
                     const scale = Math.min(1, areaWidth / docWidth);
                     docEl.style.width = docWidth + 'px';
                     docEl.style.minWidth = docWidth + 'px';
@@ -2519,11 +2673,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const content = document.getElementById('invoiceDocContent');
             if (!content) return;
 
-            const printWin = window.open('', '_blank', 'width=800,height=1000');
+            const printWin = window.open('', '_blank', 'width=1200,height=800');
             printWin.document.write(`
                 <html><head><title>인쇄</title>
                 <style>
-                    body { margin: 0; padding: 20px; font-family: 'Malgun Gothic','맑은 고딕',sans-serif; }
+                    @page { size: landscape; margin: 8mm; }
+                    body { margin: 0; padding: 15px; font-family: 'Malgun Gothic','맑은 고딕',sans-serif; }
                     ${getInvoicePrintCSS()}
                 </style></head>
                 <body>${content.outerHTML}</body></html>
@@ -2536,27 +2691,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function getInvoicePrintCSS() {
         return `
-            .invoice-doc { max-width:100%; padding:20px; }
-            .invoice-doc-title { text-align:center; font-size:28px; font-weight:bold; letter-spacing:8px; padding-bottom:15px; border-bottom:3px double #333; margin-bottom:25px; }
-            .invoice-doc-title.estimate { color:#e65100; border-bottom-color:#e65100; }
-            .invoice-doc-title.statement { color:#1565C0; border-bottom-color:#1565C0; }
-            .invoice-doc-no { text-align:right; font-size:12px; color:#666; margin-bottom:20px; }
-            .invoice-info-table { width:100%; border-collapse:collapse; font-size:13px; }
-            .invoice-info-table th { background:#f5f5f5; padding:8px 10px; text-align:left; font-weight:600; border:1px solid #ddd; width:75px; min-width:75px; max-width:75px; white-space:nowrap; }
-            .invoice-info-table td { padding:8px 10px; border:1px solid #ddd; word-break:break-all; }
-            .invoice-items-table { width:100%; border-collapse:collapse; font-size:13px; }
-            .invoice-items-table thead th { background:#37474f; color:white; padding:10px 8px; text-align:center; border:1px solid #37474f; }
+            .invoice-doc { max-width:100%; padding:25px 30px; box-sizing:border-box; }
+            .invoice-doc-title { text-align:center; font-size:34px; font-weight:bold; letter-spacing:10px; padding-bottom:0; border-bottom:none; margin-bottom:0; }
+            .invoice-doc-title.estimate { color:#e65100; }
+            .invoice-doc-title.statement { color:#1565C0; }
+            .invoice-doc-no { font-size:15px; color:#555; margin-bottom:15px; }
+            .invoice-info-table { width:100%; border-collapse:collapse; font-size:16px; }
+            .invoice-info-table th { background:#f5f5f5; padding:10px 12px; text-align:left; font-weight:600; border:1px solid #ddd; width:90px; min-width:90px; max-width:90px; white-space:nowrap; }
+            .invoice-info-table td { padding:10px 12px; border:1px solid #ddd; word-break:break-all; }
+            .invoice-items-table { width:100%; table-layout:auto; border-collapse:collapse; font-size:15px; white-space:nowrap; }
+            .invoice-items-table thead th { background:#37474f; color:white; padding:10px 6px; text-align:center; border:1px solid #37474f; font-size:13px; word-break:keep-all; }
             .invoice-items-table.estimate thead th { background:#e65100; border-color:#e65100; }
             .invoice-items-table.statement thead th { background:#1565C0; border-color:#1565C0; }
-            .invoice-items-table tbody td { padding:9px 8px; border:1px solid #ddd; text-align:center; }
-            .invoice-items-table tbody td:nth-child(2) { text-align:left; }
-            .invoice-items-table tfoot td { padding:12px 8px; border:1px solid #ddd; font-weight:bold; text-align:center; background:#fafafa; }
-            .invoice-total-row { font-size:16px; text-align:center; padding:15px 0; font-weight:bold; border-top:2px solid #333; border-bottom:2px solid #333; margin-bottom:20px; }
-            .invoice-notes { background:#f9f9f9; padding:15px; border-radius:5px; font-size:12px; color:#555; line-height:1.8; white-space:pre-wrap; margin-bottom:20px; }
-            .invoice-footer { display:flex; justify-content:space-between; margin-top:40px; font-size:13px; }
-            .invoice-stamp-area { text-align:center; width:200px; }
-            .invoice-stamp-area img { width:120px; height:auto; margin-bottom:5px; }
-            .invoice-stamp-area .stamp-label { padding-top:10px; border-top:1px solid #333; font-weight:600; }
+            .invoice-items-table tbody td { padding:10px 6px; border:1px solid #ddd; text-align:center; font-size:15px; white-space:nowrap; }
+            .invoice-items-table tbody td:nth-child(2) { text-align:left; white-space:normal; word-break:keep-all; }
+            .invoice-items-table tfoot td { padding:12px 6px; border:1px solid #ddd; font-weight:bold; text-align:center; background:#fafafa; font-size:15px; white-space:nowrap; }
+            .invoice-total-row { font-size:22px; text-align:center; padding:18px 0; font-weight:bold; border-top:3px solid #333; border-bottom:3px solid #333; margin-bottom:20px; }
+            .invoice-notes { background:#f9f9f9; padding:18px; border-radius:5px; font-size:15px; color:#555; line-height:1.8; white-space:pre-wrap; margin-bottom:20px; }
+            .invoice-footer { display:flex; justify-content:space-between; margin-top:30px; font-size:15px; }
+            .invoice-stamp-area { text-align:center; width:180px; }
+            .invoice-stamp-area img { width:100px; height:auto; margin-bottom:5px; }
+            .invoice-stamp-area .stamp-label { padding-top:8px; border-top:1px solid #333; font-weight:600; }
         `;
     }
 
@@ -2574,8 +2729,11 @@ document.addEventListener('DOMContentLoaded', function() {
             saveInvoiceImgBtn.textContent = '⏳ 생성중...';
 
             try {
+                const renderW = 1200;
+                const PAD = 80;
+
                 const offscreen = document.createElement('div');
-                offscreen.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;background:white;display:inline-block;';
+                offscreen.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;background:white;display:block;';
                 offscreen.innerHTML = target.outerHTML;
                 document.body.appendChild(offscreen);
 
@@ -2583,61 +2741,73 @@ document.addEventListener('DOMContentLoaded', function() {
                 const docEl = offscreen.querySelector('.invoice-doc');
                 if (docEl) {
                     docEl.style.cssText = '';
-                    docEl.style.width = '700px';
+                    docEl.style.width = renderW + 'px';
+                    docEl.style.maxWidth = renderW + 'px';
                     docEl.style.background = 'white';
-                    docEl.style.padding = '30px 25px';
+                    docEl.style.padding = '30px 35px';
                     docEl.style.fontFamily = "'Malgun Gothic','맑은 고딕',sans-serif";
                     docEl.style.color = '#333';
                     docEl.style.lineHeight = '1.6';
                     docEl.style.boxSizing = 'border-box';
                 }
 
+                // 모바일 축소 래퍼 제거
+                const wrapperEl = offscreen.querySelector('.invoice-doc')?.parentElement;
+                if (wrapperEl && wrapperEl !== offscreen && wrapperEl.style.overflow === 'hidden') {
+                    wrapperEl.style.cssText = '';
+                }
+
                 const style = document.createElement('style');
                 style.textContent = getInvoicePrintCSS() + `
                     .invoice-doc * { box-sizing:border-box; }
                     .invoice-info-table { table-layout:auto; width:100%; }
-                    .invoice-info-table th { width:75px !important; min-width:75px; max-width:75px; white-space:nowrap; font-size:12px; padding:7px 8px; }
-                    .invoice-info-table td { width:auto; font-size:12px; padding:7px 8px; word-break:break-all; }
-                    .invoice-items-table { table-layout:auto; width:100%; }
+                    .invoice-info-table th { width:90px !important; min-width:90px; max-width:90px; white-space:nowrap; font-size:15px; padding:10px 12px; }
+                    .invoice-info-table td { width:auto; font-size:15px; padding:10px 12px; word-break:break-all; }
+                    .invoice-items-table { table-layout:auto; width:100%; white-space:nowrap; }
+                    .invoice-items-table thead th { font-size:13px; padding:10px 6px; word-break:keep-all; }
+                    .invoice-items-table tbody td { font-size:14px; padding:10px 6px; white-space:nowrap; }
+                    .invoice-items-table tbody td:nth-child(2) { white-space:normal; word-break:keep-all; }
+                    .invoice-items-table tfoot td { font-size:14px; padding:12px 6px; white-space:nowrap; }
                     .invoice-stamp-area { position:relative; }
-                    .invoice-stamp-area img { width:110px;height:auto;opacity:1; }
+                    .invoice-stamp-area img { width:100px;height:auto;opacity:1; }
                 `;
                 offscreen.appendChild(style);
 
                 const captureTarget = docEl || offscreen;
                 const canvas = await html2canvas(captureTarget, {
-                    scale: 4,
+                    scale: 3,
                     useCORS: true,
                     backgroundColor: '#ffffff'
                 });
 
                 document.body.removeChild(offscreen);
 
-                // canvas 여백 트림
-                const trimmedCanvas = trimCanvas(canvas);
+                // 내용 크기 + 여백으로 최종 캔버스 생성 (크기 제한 없음)
+                const finalCanvas = document.createElement('canvas');
+                finalCanvas.width = canvas.width + PAD * 2;
+                finalCanvas.height = canvas.height + PAD * 2;
+                const fCtx = finalCanvas.getContext('2d');
+                fCtx.fillStyle = '#ffffff';
+                fCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+                fCtx.drawImage(canvas, PAD, PAD);
 
                 const docType = document.querySelector('input[name="invoiceType"]:checked').value;
                 const clientName = document.getElementById('invClientName').value || '고객';
                 const today = new Date().toISOString().split('T')[0];
                 const fileName = `${docType}_${clientName}_${today}.png`;
 
-                // 모바일: Web Share API로 바로 사진 공유/저장
+                // 모바일: Web Share API
                 if (navigator.share && /Mobi|Android|iPhone/i.test(navigator.userAgent)) {
-                    trimmedCanvas.toBlob(async function(blob) {
+                    finalCanvas.toBlob(async function(blob) {
                         try {
                             const file = new File([blob], fileName, { type: 'image/png' });
-                            await navigator.share({
-                                files: [file],
-                                title: fileName
-                            });
+                            await navigator.share({ files: [file], title: fileName });
                         } catch (shareErr) {
-                            // 공유 취소 또는 미지원 시 다운로드 폴백
-                            downloadCanvas(canvas, fileName);
+                            downloadCanvas(finalCanvas, fileName);
                         }
                     }, 'image/png');
                 } else {
-                    // PC: 기존 다운로드 방식
-                    downloadCanvas(trimmedCanvas, fileName);
+                    downloadCanvas(finalCanvas, fileName);
                 }
 
             } catch (err) {
@@ -2686,9 +2856,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const trimW = right - left + 1;
         const trimH = bottom - top + 1;
 
-        // A4 비율 (1 : 1.414)
-        const a4Ratio = 1.414;
-        const pad = 150;
+        // A4 가로 비율 (1.414 : 1)
+        const a4Ratio = 1 / 1.414;
+        const pad = 100;
         const contentW = trimW + pad * 2;
         const contentH = trimH + pad * 2;
 
@@ -2740,32 +2910,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 addr: document.getElementById('invClientAddr').value || ''
             };
 
-            const itemRows = document.querySelectorAll('.invoice-item-row');
+            const itemRows = document.querySelectorAll('#invoiceItemsBody .inv-edit-row');
             const items = [];
             let grandTotal = 0;
             itemRows.forEach((row) => {
-                const name = row.querySelector('.inv-item-name').value || '';
-                const qty = parseInt(row.querySelector('.inv-item-qty').value) || 0;
-                const price = parseInt(row.querySelector('.inv-item-price').value) || 0;
-                const amount = qty * price;
+                const name = row.querySelector('.inv-item-name')?.value || '';
+                const spec = row.querySelector('.inv-item-spec')?.value || '';
+                const unit = row.querySelector('.inv-item-unit')?.value || '';
+                const qty = parseFloat(row.querySelector('.inv-item-qty')?.value) || 0;
+                const matPrice = parseInt(row.querySelector('.inv-item-mat-price')?.value) || 0;
+                const labPrice = parseInt(row.querySelector('.inv-item-lab-price')?.value) || 0;
+                const etcPrice = parseInt(row.querySelector('.inv-item-etc-price')?.value) || 0;
+                const remark = row.querySelector('.inv-item-remark')?.value || '';
+                const amount = qty * (matPrice + labPrice + etcPrice);
                 if (name) {
-                    items.push({ name, qty, price, amount });
+                    items.push({ name, spec, unit, qty, matPrice, labPrice, etcPrice, remark, amount });
                     grandTotal += amount;
                 }
             });
 
+            const expRate = parseFloat(document.getElementById('invExpenseRate')?.value) || 10;
+            const expenseAmt = Math.round(grandTotal * expRate / 100);
+            const grandTotalWithExp = grandTotal + expenseAmt;
             const notes = document.getElementById('invNotes').value || '';
-            const vat = includeVat ? Math.round(grandTotal * 0.1) : 0;
-            const finalTotal = includeVat ? grandTotal + vat : grandTotal;
+            const vat = includeVat ? Math.round(grandTotalWithExp * 0.1) : 0;
+            const finalTotal = includeVat ? grandTotalWithExp + vat : grandTotalWithExp;
 
             const invoiceData = {
                 docType,
                 includeVat,
                 includeStamp,
+                expRate,
                 supplier,
                 client,
                 items,
-                grandTotal,
+                grandTotal: grandTotalWithExp,
+                expenseAmt,
                 vat,
                 finalTotal,
                 notes,
@@ -2868,6 +3048,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // 인감도장
             document.getElementById('invIncludeStamp').checked = d.includeStamp || false;
 
+            // 경비율
+            if (document.getElementById('invExpenseRate')) {
+                document.getElementById('invExpenseRate').value = d.expRate != null ? d.expRate : 10;
+            }
+
             // 공급자
             if (d.supplier) {
                 document.getElementById('invSupplierName').value = d.supplier.name || '';
@@ -2885,14 +3070,24 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // 품목
-            const container = document.getElementById('invoiceItemsContainer');
-            container.innerHTML = '';
+            const tbody = document.getElementById('invoiceItemsBody');
+            if (tbody) tbody.innerHTML = '';
+            invoiceItemIdx = 0;
             if (d.items && d.items.length > 0) {
                 d.items.forEach(item => {
-                    addInvoiceItem(item.name, item.qty, item.price);
+                    // 하위호환: costType 방식 → 개별 단가 방식
+                    let matP = item.matPrice || 0, labP = item.labPrice || 0, expP = item.expPrice || 0, etcP = item.etcPrice || 0;
+                    if (item.costType && item.unitPrice) {
+                        if (item.costType === 'mat') matP = item.unitPrice;
+                        else if (item.costType === 'lab') labP = item.unitPrice;
+                        else if (item.costType === 'exp') expP = item.unitPrice;
+                        else if (item.costType === 'etc') etcP = item.unitPrice;
+                    }
+                    if (!matP && !labP && !expP && !etcP && item.price) matP = item.price;
+                    addInvoiceItemDirect(item.name, item.qty, matP, labP, expP, etcP, item.spec || '', item.unit || '', item.remark || '');
                 });
             } else {
-                addInvoiceItem('', 1, 0);
+                addInvoiceItem('', 1, 0, 'mat', '', '', '');
             }
 
             // 비고
