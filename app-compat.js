@@ -2298,47 +2298,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const actionBtnStyle = 'border:none;background:none;cursor:pointer;font-size:14px;padding:1px 3px;line-height:1;';
 
     function createInvRow(name, qty, matVal, labVal, etcVal, spec, unit, remark, isSection) {
-        const idx = invoiceItemIdx++;
-        const tr = document.createElement('tr');
+        var idx = invoiceItemIdx++;
+        var tr = document.createElement('tr');
         tr.dataset.idx = idx;
         tr.className = 'inv-edit-row';
         if (isSection) tr.dataset.section = '1';
-        const inputStyle = 'width:100%;border:none;outline:none;background:transparent;text-align:center;font-size:12px;padding:2px;';
-        const numStyle = inputStyle + 'text-align:right;';
-
-        tr.innerHTML =
-            '<td class="inv-no-cell" style="text-align:center;"></td>' +
-            '<td><input type="text" class="inv-item-name" style="' + inputStyle + 'text-align:left;" value="' + (name||'') + '" placeholder="품목명"></td>' +
-            '<td class="inv-data-cell"><input type="text" class="inv-item-spec" style="' + inputStyle + '" value="' + (spec||'') + '" placeholder="규격"></td>' +
-            '<td class="inv-data-cell"><input type="text" class="inv-item-unit" style="' + inputStyle + '" value="' + (unit||'') + '" placeholder="식"></td>' +
-            '<td class="inv-data-cell"><input type="number" class="inv-item-qty" style="' + numStyle + '" value="' + (qty||1) + '" min="0" step="any"></td>' +
-            '<td class="inv-data-cell"><input type="number" class="inv-item-mat-price" style="' + numStyle + '" value="' + (matVal||0) + '" min="0"></td>' +
-            '<td class="inv-data-cell inv-cell-mat-amt" style="text-align:right;font-size:12px;"></td>' +
-            '<td class="inv-data-cell"><input type="number" class="inv-item-lab-price" style="' + numStyle + '" value="' + (labVal||0) + '" min="0"></td>' +
-            '<td class="inv-data-cell inv-cell-lab-amt" style="text-align:right;font-size:12px;"></td>' +
-            '<td class="inv-data-cell"><input type="number" class="inv-item-etc-price" style="' + numStyle + '" value="' + (etcVal||0) + '" min="0"></td>' +
-            '<td class="inv-data-cell inv-cell-etc-amt" style="text-align:right;font-size:12px;"></td>' +
-            '<td class="inv-data-cell inv-cell-total" style="text-align:right;font-weight:bold;font-size:12px;"></td>' +
-            '<td class="inv-data-cell"><input type="text" class="inv-item-remark" style="' + inputStyle + '" value="' + (remark||'') + '" placeholder=""></td>' +
-            '<td style="text-align:center;white-space:nowrap;">' +
-                '<label title="제목행" style="cursor:pointer;font-size:11px;margin-right:2px;"><input type="checkbox" class="inv-section-chk" style="width:13px;height:13px;vertical-align:middle;" onchange="toggleSectionRow(this)" ' + (isSection ? 'checked' : '') + '>T</label>' +
-                '<button type="button" style="' + actionBtnStyle + 'color:#666;" onclick="moveInvRow(this,-1)" title="위로">▲</button>' +
-                '<button type="button" style="' + actionBtnStyle + 'color:#666;" onclick="moveInvRow(this,1)" title="아래로">▼</button>' +
-                '<button type="button" style="' + actionBtnStyle + 'color:#4CAF50;" onclick="insertInvRowAfter(this)" title="아래에 추가">➕</button>' +
-                '<button type="button" style="' + actionBtnStyle + 'color:#f44336;" onclick="deleteInvRow(this)" title="삭제">✕</button>' +
-            '</td>';
-
-        tr.querySelectorAll('input[type=number]').forEach(function(inp) {
-            inp.addEventListener('input', recalcInvoiceTotals);
-        });
+        var inputStyle = 'width:100%;border:none;outline:none;background:transparent;text-align:center;font-size:12px;padding:2px;';
+        var numStyle = inputStyle + 'text-align:right;';
 
         if (isSection) {
-            // 제목행으로 즉시 전환
-            var totalCols = tr.querySelectorAll('td').length;
-            var sectionName = name || '';
             tr.innerHTML =
-                '<td colspan="' + (totalCols - 1) + '" style="text-align:left;background:#e8eaf6;padding:8px 12px;">' +
-                    '<input type="text" class="inv-item-name" value="' + sectionName + '" placeholder="구역/제목 입력" ' +
+                '<td colspan="13" style="text-align:left;background:#e8eaf6;padding:8px 12px;">' +
+                    '<input type="text" class="inv-item-name" placeholder="구역/제목 입력" ' +
                     'style="width:100%;border:none;outline:none;background:transparent;font-size:14px;font-weight:bold;color:#1a237e;">' +
                 '</td>' +
                 '<td style="text-align:center;white-space:nowrap;background:#e8eaf6;">' +
@@ -2349,6 +2320,41 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<button type="button" style="' + actionBtnStyle + 'color:#4CAF50;" onclick="insertInvRowAfter(this)" title="아래에 추가">➕</button>' +
                     '<button type="button" style="' + actionBtnStyle + 'color:#f44336;" onclick="deleteInvRow(this)" title="삭제">✕</button>' +
                 '</td>';
+            tr.querySelector('.inv-item-name').value = name || '';
+        } else {
+            tr.innerHTML =
+                '<td class="inv-no-cell" style="text-align:center;"></td>' +
+                '<td><input type="text" class="inv-item-name" style="' + inputStyle + 'text-align:left;" placeholder="품목명"></td>' +
+                '<td class="inv-data-cell"><input type="text" class="inv-item-spec" style="' + inputStyle + '" placeholder="규격"></td>' +
+                '<td class="inv-data-cell"><input type="text" class="inv-item-unit" style="' + inputStyle + '" placeholder="식"></td>' +
+                '<td class="inv-data-cell"><input type="number" class="inv-item-qty" style="' + numStyle + '" min="0" step="any"></td>' +
+                '<td class="inv-data-cell"><input type="number" class="inv-item-mat-price" style="' + numStyle + '" min="0"></td>' +
+                '<td class="inv-data-cell inv-cell-mat-amt" style="text-align:right;font-size:12px;"></td>' +
+                '<td class="inv-data-cell"><input type="number" class="inv-item-lab-price" style="' + numStyle + '" min="0"></td>' +
+                '<td class="inv-data-cell inv-cell-lab-amt" style="text-align:right;font-size:12px;"></td>' +
+                '<td class="inv-data-cell"><input type="number" class="inv-item-etc-price" style="' + numStyle + '" min="0"></td>' +
+                '<td class="inv-data-cell inv-cell-etc-amt" style="text-align:right;font-size:12px;"></td>' +
+                '<td class="inv-data-cell inv-cell-total" style="text-align:right;font-weight:bold;font-size:12px;"></td>' +
+                '<td class="inv-data-cell"><input type="text" class="inv-item-remark" style="' + inputStyle + '" placeholder=""></td>' +
+                '<td style="text-align:center;white-space:nowrap;">' +
+                    '<label title="제목행" style="cursor:pointer;font-size:11px;margin-right:2px;"><input type="checkbox" class="inv-section-chk" style="width:13px;height:13px;vertical-align:middle;" onchange="toggleSectionRow(this)">T</label>' +
+                    '<button type="button" style="' + actionBtnStyle + 'color:#666;" onclick="moveInvRow(this,-1)" title="위로">▲</button>' +
+                    '<button type="button" style="' + actionBtnStyle + 'color:#666;" onclick="moveInvRow(this,1)" title="아래로">▼</button>' +
+                    '<button type="button" style="' + actionBtnStyle + 'color:#4CAF50;" onclick="insertInvRowAfter(this)" title="아래에 추가">➕</button>' +
+                    '<button type="button" style="' + actionBtnStyle + 'color:#f44336;" onclick="deleteInvRow(this)" title="삭제">✕</button>' +
+                '</td>';
+            // DOM으로 값 설정 (특수문자 안전)
+            tr.querySelector('.inv-item-name').value = name || '';
+            tr.querySelector('.inv-item-spec').value = spec || '';
+            tr.querySelector('.inv-item-unit').value = unit || '';
+            tr.querySelector('.inv-item-qty').value = qty || 1;
+            tr.querySelector('.inv-item-mat-price').value = matVal || 0;
+            tr.querySelector('.inv-item-lab-price').value = labVal || 0;
+            tr.querySelector('.inv-item-etc-price').value = etcVal || 0;
+            tr.querySelector('.inv-item-remark').value = remark || '';
+            tr.querySelectorAll('input[type=number]').forEach(function(inp) {
+                inp.addEventListener('input', recalcInvoiceTotals);
+            });
         }
         return tr;
     }
@@ -2361,11 +2367,9 @@ document.addEventListener('DOMContentLoaded', function() {
         tr.dataset.section = isOn ? '1' : '';
 
         if (isOn) {
-            // 제목행으로 전환: 셀을 하나로 합침
-            var totalCols = tr.querySelectorAll('td').length;
             tr.innerHTML =
-                '<td colspan="' + (totalCols - 1) + '" style="text-align:left;background:#e8eaf6;padding:8px 12px;">' +
-                    '<input type="text" class="inv-item-name" value="' + nameVal + '" placeholder="구역/제목 입력" ' +
+                '<td colspan="13" style="text-align:left;background:#e8eaf6;padding:8px 12px;">' +
+                    '<input type="text" class="inv-item-name" placeholder="구역/제목 입력" ' +
                     'style="width:100%;border:none;outline:none;background:transparent;font-size:14px;font-weight:bold;color:#1a237e;">' +
                 '</td>' +
                 '<td style="text-align:center;white-space:nowrap;background:#e8eaf6;">' +
@@ -2376,24 +2380,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<button type="button" style="' + actionBtnStyle + 'color:#4CAF50;" onclick="insertInvRowAfter(this)" title="아래에 추가">➕</button>' +
                     '<button type="button" style="' + actionBtnStyle + 'color:#f44336;" onclick="deleteInvRow(this)" title="삭제">✕</button>' +
                 '</td>';
+            tr.querySelector('.inv-item-name').value = nameVal;
         } else {
-            // 일반행으로 복원
             var inputStyle = 'width:100%;border:none;outline:none;background:transparent;text-align:center;font-size:12px;padding:2px;';
             var numStyle = inputStyle + 'text-align:right;';
             tr.innerHTML =
                 '<td class="inv-no-cell" style="text-align:center;"></td>' +
-                '<td><input type="text" class="inv-item-name" style="' + inputStyle + 'text-align:left;" value="' + nameVal + '" placeholder="품목명"></td>' +
-                '<td class="inv-data-cell"><input type="text" class="inv-item-spec" style="' + inputStyle + '" value="" placeholder="규격"></td>' +
-                '<td class="inv-data-cell"><input type="text" class="inv-item-unit" style="' + inputStyle + '" value="" placeholder="식"></td>' +
-                '<td class="inv-data-cell"><input type="number" class="inv-item-qty" style="' + numStyle + '" value="1" min="0" step="any"></td>' +
-                '<td class="inv-data-cell"><input type="number" class="inv-item-mat-price" style="' + numStyle + '" value="0" min="0"></td>' +
+                '<td><input type="text" class="inv-item-name" style="' + inputStyle + 'text-align:left;" placeholder="품목명"></td>' +
+                '<td class="inv-data-cell"><input type="text" class="inv-item-spec" style="' + inputStyle + '" placeholder="규격"></td>' +
+                '<td class="inv-data-cell"><input type="text" class="inv-item-unit" style="' + inputStyle + '" placeholder="식"></td>' +
+                '<td class="inv-data-cell"><input type="number" class="inv-item-qty" style="' + numStyle + '" min="0" step="any"></td>' +
+                '<td class="inv-data-cell"><input type="number" class="inv-item-mat-price" style="' + numStyle + '" min="0"></td>' +
                 '<td class="inv-data-cell inv-cell-mat-amt" style="text-align:right;font-size:12px;"></td>' +
-                '<td class="inv-data-cell"><input type="number" class="inv-item-lab-price" style="' + numStyle + '" value="0" min="0"></td>' +
+                '<td class="inv-data-cell"><input type="number" class="inv-item-lab-price" style="' + numStyle + '" min="0"></td>' +
                 '<td class="inv-data-cell inv-cell-lab-amt" style="text-align:right;font-size:12px;"></td>' +
-                '<td class="inv-data-cell"><input type="number" class="inv-item-etc-price" style="' + numStyle + '" value="0" min="0"></td>' +
+                '<td class="inv-data-cell"><input type="number" class="inv-item-etc-price" style="' + numStyle + '" min="0"></td>' +
                 '<td class="inv-data-cell inv-cell-etc-amt" style="text-align:right;font-size:12px;"></td>' +
                 '<td class="inv-data-cell inv-cell-total" style="text-align:right;font-weight:bold;font-size:12px;"></td>' +
-                '<td class="inv-data-cell"><input type="text" class="inv-item-remark" style="' + inputStyle + '" value="" placeholder=""></td>' +
+                '<td class="inv-data-cell"><input type="text" class="inv-item-remark" style="' + inputStyle + '" placeholder=""></td>' +
                 '<td style="text-align:center;white-space:nowrap;">' +
                     '<label title="제목행" style="cursor:pointer;font-size:11px;margin-right:2px;"><input type="checkbox" class="inv-section-chk" style="width:13px;height:13px;vertical-align:middle;" onchange="toggleSectionRow(this)">T</label>' +
                     '<button type="button" style="' + actionBtnStyle + 'color:#666;" onclick="moveInvRow(this,-1)" title="위로">▲</button>' +
@@ -2401,6 +2405,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<button type="button" style="' + actionBtnStyle + 'color:#4CAF50;" onclick="insertInvRowAfter(this)" title="아래에 추가">➕</button>' +
                     '<button type="button" style="' + actionBtnStyle + 'color:#f44336;" onclick="deleteInvRow(this)" title="삭제">✕</button>' +
                 '</td>';
+            tr.querySelector('.inv-item-name').value = nameVal;
+            tr.querySelector('.inv-item-qty').value = 1;
+            tr.querySelector('.inv-item-mat-price').value = 0;
+            tr.querySelector('.inv-item-lab-price').value = 0;
+            tr.querySelector('.inv-item-etc-price').value = 0;
             tr.querySelectorAll('input[type=number]').forEach(function(inp) {
                 inp.addEventListener('input', recalcInvoiceTotals);
             });
