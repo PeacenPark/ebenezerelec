@@ -2248,6 +2248,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('invClientTel').value = '';
         document.getElementById('invClientAddr').value = '';
 
+        // 공사명 초기화
+        if (document.getElementById('invProjectTitle')) {
+            document.getElementById('invProjectTitle').value = '';
+        }
+
         // 품목 초기화 - 빈 품목 1개
         const tbody = document.getElementById('invoiceItemsBody');
         if (tbody) tbody.innerHTML = '';
@@ -2466,6 +2471,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         const notes = document.getElementById('invNotes').value || '';
+        const projectTitle = document.getElementById('invProjectTitle')?.value || '';
         const today = new Date();
         const dateStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
         const docNo = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}-${Math.floor(Math.random()*10)+1}`;
@@ -2588,6 +2594,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
 
+                ${projectTitle ? `<div style="text-align:center;margin-bottom:15px;padding:10px;background:#f8f9fa;border:1px solid #ddd;border-radius:4px;font-size:16px;font-weight:700;color:#333;">📌 ${projectTitle}</div>` : ''}
+
                 <table class="invoice-items-table ${typeCls}">
                     <thead>
                         <tr>
@@ -2614,7 +2622,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 <div class="invoice-total-row">${totalRowHtml}</div>
 
-                ${notes ? `<div class="invoice-notes"><strong>비고</strong><br><span style="font-size:13px;font-weight:700;color:#333;">${notes.replace(/\n/g, '<br>')}</span></div>` : ''}
+                ${notes ? `<div class="invoice-notes"><strong style="font-size:17px;">비고</strong><br><span style="font-size:17px;font-weight:700;color:#333;">${notes.replace(/\n/g, '<br>')}</span></div>` : ''}
             </div>
         `;
 
@@ -2700,14 +2708,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .invoice-info-table th { background:#f5f5f5; padding:10px 12px; text-align:left; font-weight:600; border:1px solid #ddd; width:90px; min-width:90px; max-width:90px; white-space:nowrap; }
             .invoice-info-table td { padding:10px 12px; border:1px solid #ddd; word-break:break-all; }
             .invoice-items-table { width:100%; table-layout:auto; border-collapse:collapse; font-size:15px; white-space:nowrap; }
-            .invoice-items-table thead th { background:#37474f; color:white; padding:10px 6px; text-align:center; border:1px solid #37474f; font-size:13px; word-break:keep-all; }
-            .invoice-items-table.estimate thead th { background:#e65100; border-color:#e65100; }
-            .invoice-items-table.statement thead th { background:#1565C0; border-color:#1565C0; }
+            .invoice-items-table thead th { background:#37474f; color:white; padding:10px 6px; text-align:center; border:2px solid #fff; font-size:13px; word-break:keep-all; }
+            .invoice-items-table.estimate thead th { background:#e65100; }
+            .invoice-items-table.statement thead th { background:#1565C0; }
             .invoice-items-table tbody td { padding:10px 6px; border:1px solid #ddd; text-align:center; font-size:15px; white-space:nowrap; }
             .invoice-items-table tbody td:nth-child(2) { text-align:left; white-space:normal; word-break:keep-all; }
             .invoice-items-table tfoot td { padding:12px 6px; border:1px solid #ddd; font-weight:bold; text-align:center; background:#fafafa; font-size:15px; white-space:nowrap; }
             .invoice-total-row { font-size:22px; text-align:center; padding:18px 0; font-weight:bold; border-top:3px solid #333; border-bottom:3px solid #333; margin-bottom:20px; }
-            .invoice-notes { background:#f9f9f9; padding:18px; border-radius:5px; font-size:15px; color:#555; line-height:1.8; white-space:pre-wrap; margin-bottom:20px; }
+            .invoice-notes { background:#f9f9f9; padding:18px; border-radius:5px; font-size:17px; color:#333; line-height:1.8; white-space:pre-wrap; margin-bottom:20px; font-weight:600; }
             .invoice-footer { display:flex; justify-content:space-between; margin-top:30px; font-size:15px; }
             .invoice-stamp-area { text-align:center; width:180px; }
             .invoice-stamp-area img { width:100px; height:auto; margin-bottom:5px; }
@@ -2933,6 +2941,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const expenseAmt = Math.round(grandTotal * expRate / 100);
             const grandTotalWithExp = grandTotal + expenseAmt;
             const notes = document.getElementById('invNotes').value || '';
+            const projectTitle = document.getElementById('invProjectTitle')?.value || '';
             const vat = includeVat ? Math.round(grandTotalWithExp * 0.1) : 0;
             const finalTotal = includeVat ? grandTotalWithExp + vat : grandTotalWithExp;
 
@@ -2941,6 +2950,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 includeVat,
                 includeStamp,
                 expRate,
+                projectTitle,
                 supplier,
                 client,
                 items,
@@ -3051,6 +3061,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // 경비율
             if (document.getElementById('invExpenseRate')) {
                 document.getElementById('invExpenseRate').value = d.expRate != null ? d.expRate : 10;
+            }
+
+            // 공사명
+            if (document.getElementById('invProjectTitle')) {
+                document.getElementById('invProjectTitle').value = d.projectTitle || '';
             }
 
             // 공급자

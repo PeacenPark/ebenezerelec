@@ -2017,19 +2017,17 @@ body {
     padding: 10px 6px;
     text-align: center;
     font-weight: 600;
-    border: 1px solid #37474f;
+    border: 2px solid #fff;
     font-size: 13px;
     word-break: keep-all;
 }
 
 .invoice-items-table.estimate thead th {
     background: #e65100;
-    border-color: #e65100;
 }
 
 .invoice-items-table.statement thead th {
     background: #1565C0;
-    border-color: #1565C0;
 }
 
 .invoice-items-table tbody td {
@@ -2074,11 +2072,12 @@ body {
     background: #f9f9f9;
     padding: 18px;
     border-radius: 5px;
-    font-size: 15px;
-    color: #555;
+    font-size: 17px;
+    color: #333;
     line-height: 1.8;
     white-space: pre-wrap;
     margin-bottom: 20px;
+    font-weight: 600;
 }
 
 .invoice-footer {
