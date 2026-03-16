@@ -62,13 +62,13 @@
                     <thead>
                         <tr>
                             <th>월</th>
-                            <th>거래 건수</th>
+                            <th>거래수</th>
                             <th>총 매출</th>
-                            <th>자재비</th>
-                            <th>인부 비용</th>
-                            <th>순이익</th>
+                            <th>투입자재비</th>
+                            <th>인부비용</th>
+                            <th>작업수익</th>
                             <th>운영비</th>
-                            <th>실순이익</th>
+                            <th>실수익</th>
                         </tr>
                     </thead>
                     <tbody id="monthlyStatsBody">
@@ -316,6 +316,12 @@
                         <textarea id="expenseNotes" placeholder="추가 메모 (구매처, 영수증 번호 등)"></textarea>
                     </div>
 
+                    <div class="form-group">
+                        <label>📷 영수증/증빙 이미지</label>
+                        <input type="file" id="expenseImage" accept="image/*" multiple style="font-size:13px;">
+                        <div id="expenseImagePreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"></div>
+                    </div>
+
                     <button type="submit" class="btn btn-primary" id="expenseSubmitBtn" style="background: linear-gradient(135deg, #f44336 0%, #e91e63 100%);">
                         ✅ 운영비 저장
                     </button>
@@ -555,7 +561,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="materialCost">자재비 (원)</label>
+                            <label for="materialCost">투입 자재비 (원) <small style="color:#888;font-weight:normal;">※ 재고에서 사용한 원가</small></label>
                             <input type="number" id="materialCost" min="0" value="0">
                         </div>
                     </div>
@@ -839,6 +845,7 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>

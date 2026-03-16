@@ -15,6 +15,7 @@ const firebaseConfig = {
 console.log('Firebase 초기화 중...');
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const storage = firebase.storage();
 console.log('Firebase 초기화 완료');
 
 // 전역 변수
@@ -699,7 +700,7 @@ document.addEventListener('DOMContentLoaded', function() {
             monthlyData[month].profit += t.profit || 0;
         });
 
-        // 지출 데이터 병합
+        // 지출 데이터 병합 (운영비 = 자재구매 포함 전체)
         allExpenses.forEach(e => {
             if (!e.date) return;
             const month = e.date.substring(0, 7);
@@ -717,10 +718,10 @@ document.addEventListener('DOMContentLoaded', function() {
             monthlyData[month].expense += e.amount || 0;
         });
 
-        // 실순이익 계산
+        // 실수익 = 총매출 - 인부비용 - 운영비(자재구매 포함)
         Object.keys(monthlyData).forEach(month => {
             const d = monthlyData[month];
-            d.netProfit = d.profit - d.expense;
+            d.netProfit = d.totalRevenue - d.laborCost - d.expense;
         });
     
         const sortedMonths = Object.keys(monthlyData).sort().reverse();
@@ -1045,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 '서비스': t.serviceType,
                 '유입경로': t.referralSource || '',
                 '총비용': t.totalCost || 0,
-                '자재비': t.materialCost || 0,
+                '투입자재비': t.materialCost || 0,
                 '인건비': t.laborCost || 0,
                 '순이익': t.profit || 0,
                 '작업내용': t.content || ''
@@ -1060,7 +1061,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 '거래일': '', '정산일': '', '결제상태': '', '결제방식': '',
                 '고객명': '', '연락처': '', '지역': '', '서비스': '',
                 '유입경로': '합계',
-                '총비용': sumTotal, '자재비': sumMaterial, '인건비': sumLabor,
+                '총비용': sumTotal, '투입자재비': sumMaterial, '인건비': sumLabor,
                 '순이익': sumProfit, '작업내용': ''
             });
 
@@ -1156,7 +1157,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <th style="padding:12px 8px;text-align:left;font-size:13px;">서비스</th>
                             <th style="padding:12px 8px;text-align:center;font-size:13px;">결제</th>
                             <th style="padding:12px 8px;text-align:right;font-size:13px;">총비용</th>
-                            <th style="padding:12px 8px;text-align:right;font-size:13px;">자재비</th>
+                            <th style="padding:12px 8px;text-align:right;font-size:13px;">투입자재비</th>
                             <th style="padding:12px 8px;text-align:right;font-size:13px;">인건비</th>
                             <th style="padding:12px 8px;text-align:right;font-size:13px;">순이익</th>
                         </tr>
@@ -1302,7 +1303,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="detail-cost-value">₩${formatNumber(transaction.totalCost)}</div>
                     </div>
                     <div class="detail-cost-box">
-                        <div class="detail-cost-label">자재비</div>
+                        <div class="detail-cost-label">투입자재비</div>
                         <div class="detail-cost-value" style="color: #ff9800;">₩${formatNumber(transaction.materialCost)}</div>
                     </div>
                     <div class="detail-cost-box">
@@ -1933,8 +1934,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 지출 폼 제출
     if (expenseForm) {
+        // 이미지 미리보기
+        const expenseImageInput = document.getElementById('expenseImage');
+        const expenseImagePreview = document.getElementById('expenseImagePreview');
+        if (expenseImageInput) {
+            expenseImageInput.addEventListener('change', function() {
+                expenseImagePreview.innerHTML = '';
+                Array.from(this.files).forEach((file, i) => {
+                    if (!file.type.startsWith('image/')) return;
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const div = document.createElement('div');
+                        div.style.cssText = 'position:relative;display:inline-block;';
+                        div.innerHTML = '<img src="' + e.target.result + '" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #ddd;">' +
+                            '<button type="button" onclick="this.parentElement.remove()" style="position:absolute;top:-5px;right:-5px;background:#f44336;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:18px;">✕</button>';
+                        expenseImagePreview.appendChild(div);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            });
+        }
+
         expenseForm.addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            const submitBtn = document.getElementById('expenseSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ 저장 중...';
 
             const expenseData = {
                 date: document.getElementById('expenseDate').value,
@@ -1947,19 +1973,45 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             try {
+                // 이미지 업로드
+                const imageFiles = expenseImageInput ? expenseImageInput.files : [];
+                const imageUrls = [];
+                if (imageFiles.length > 0 && typeof storage !== 'undefined') {
+                    for (let i = 0; i < imageFiles.length; i++) {
+                        const file = imageFiles[i];
+                        if (!file.type.startsWith('image/')) continue;
+                        const fileName = Date.now() + '_' + i + '_' + file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+                        const ref = storage.ref('expense-receipts/' + fileName);
+                        await ref.put(file);
+                        const url = await ref.getDownloadURL();
+                        imageUrls.push(url);
+                    }
+                }
+                if (imageUrls.length > 0) {
+                    expenseData.imageUrls = imageUrls;
+                }
+
                 if (currentExpenseEditId) {
+                    // 수정 시 기존 이미지 유지 + 새 이미지 추가
+                    if (imageUrls.length === 0) {
+                        delete expenseData.imageUrls; // 새 이미지 없으면 기존 유지
+                    }
                     await db.collection('expenses').doc(currentExpenseEditId).update(expenseData);
                     alert('✅ 운영비가 수정되었습니다!');
                     currentExpenseEditId = null;
-                    document.getElementById('expenseSubmitBtn').textContent = '✅ 운영비 저장';
+                    submitBtn.textContent = '✅ 운영비 저장';
                 } else {
                     await db.collection('expenses').add(expenseData);
                     alert('✅ 운영비가 저장되었습니다!');
                 }
                 expenseForm.reset();
+                if (expenseImagePreview) expenseImagePreview.innerHTML = '';
                 closeExpenseModal();
             } catch (error) {
                 alert('❌ 오류: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                if (!currentExpenseEditId) submitBtn.textContent = '✅ 운영비 저장';
             }
         });
     }
@@ -2129,7 +2181,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="detail-section-title">운영비 내용</div>
                 <div class="detail-full">${expense.description}</div>
             </div>
-            ${expense.notes ? `<div class="detail-section"><div class="detail-section-title">비고</div><div class="detail-full">${expense.notes}</div></span></div>` : ''}
+            ${expense.notes ? `<div class="detail-section"><div class="detail-section-title">비고</div><div class="detail-full">${expense.notes}</div></div>` : ''}
+            ${expense.imageUrls && expense.imageUrls.length > 0 ? `
+                <div class="detail-section">
+                    <div class="detail-section-title">📷 영수증/증빙</div>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
+                        ${expense.imageUrls.map(url => `<a href="${url}" target="_blank" style="display:inline-block;"><img src="${url}" style="width:120px;height:120px;object-fit:cover;border-radius:8px;border:1px solid #ddd;cursor:pointer;"></a>`).join('')}
+                    </div>
+                </div>` : ''}
         `;
 
         // 버튼 이벤트
