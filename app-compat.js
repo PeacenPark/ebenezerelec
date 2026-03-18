@@ -3155,7 +3155,20 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             try {
-                await db.collection('invoices').add(invoiceData);
+                // 최대 2회 재시도
+                let saved = false;
+                for (let attempt = 0; attempt < 3 && !saved; attempt++) {
+                    try {
+                        await db.collection('invoices').add(invoiceData);
+                        saved = true;
+                    } catch (retryErr) {
+                        if (attempt < 2) {
+                            await new Promise(r => setTimeout(r, 500));
+                        } else {
+                            throw retryErr;
+                        }
+                    }
+                }
                 alert('명세서가 저장되었습니다.');
             } catch (err) {
                 alert('저장 실패: ' + err.message);

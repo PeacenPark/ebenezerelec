@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ebenezer-electric-v28';
+const CACHE_NAME = 'ebenezer-electric-v29';
 const urlsToCache = [
   '/',
   '/index.html',
