@@ -2837,6 +2837,252 @@ document.addEventListener('DOMContentLoaded', function() {
         closePreviewBtn2.addEventListener('click', function(e) { e.preventDefault(); closeInvoicePreviewModal(); });
     }
 
+    // 엑셀 내보내기
+    const exportInvoiceExcelBtn = document.getElementById('exportInvoiceExcelBtn');
+    if (exportInvoiceExcelBtn) {
+        exportInvoiceExcelBtn.addEventListener('click', function() {
+            if (typeof XLSX === 'undefined') { alert('엑셀 라이브러리를 불러올 수 없습니다.'); return; }
+
+            var docType = document.querySelector('input[name="invoiceType"]:checked').value;
+            var isEstimate = docType === '견적서';
+            var clientName = document.getElementById('invClientName').value || '고객';
+            var projectTitle = document.getElementById('invProjectTitle')?.value || '';
+            var today = new Date().toISOString().split('T')[0];
+            var themeColor = isEstimate ? 'E65100' : '1565C0';
+
+            // 스타일 정의
+            var border = function(clr){return {top:{style:'thin',color:{rgb:clr||'DDDDDD'}},bottom:{style:'thin',color:{rgb:clr||'DDDDDD'}},left:{style:'thin',color:{rgb:clr||'DDDDDD'}},right:{style:'thin',color:{rgb:clr||'DDDDDD'}}};};
+            var titleStyle = {font:{bold:true,sz:20,color:{rgb:'000000'}},alignment:{horizontal:'center',vertical:'center'}};
+            var thStyle = {font:{bold:true,sz:10,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:themeColor}},alignment:{horizontal:'center',vertical:'center'},border:border('FFFFFF')};
+            var ilStyle = {font:{bold:true,sz:10},fill:{fgColor:{rgb:'F5F5F5'}},alignment:{horizontal:'center',vertical:'center'},border:border()};
+            var ivStyle = {font:{sz:10},alignment:{horizontal:'left',vertical:'center',wrapText:true},border:border()};
+            var cStyle = {font:{sz:10},alignment:{horizontal:'center',vertical:'center'},border:border()};
+            var clStyle = {font:{sz:10},alignment:{horizontal:'left',vertical:'center'},border:border()};
+            var nStyle = {font:{sz:10},numFmt:'#,##0',alignment:{horizontal:'center',vertical:'center'},border:border()};
+            var secStyle = {font:{bold:true,sz:11,color:{rgb:'1A237E'}},fill:{fgColor:{rgb:'E8EAF6'}},alignment:{horizontal:'left',vertical:'center'},border:border()};
+            var flStyle = {font:{bold:true,sz:10},fill:{fgColor:{rgb:'F0F0F0'}},alignment:{horizontal:'center',vertical:'center'},border:border()};
+            var fnStyle = {font:{bold:true,sz:10},numFmt:'#,##0',fill:{fgColor:{rgb:'F0F0F0'}},alignment:{horizontal:'center',vertical:'center'},border:border()};
+            var tlStyle = {font:{bold:true,sz:12},fill:{fgColor:{rgb:'E8EAF6'}},alignment:{horizontal:'center',vertical:'center'},border:border('333333')};
+            var tnStyle = {font:{bold:true,sz:12},numFmt:'#,##0',fill:{fgColor:{rgb:'E8EAF6'}},alignment:{horizontal:'right',vertical:'center'},border:border('333333')};
+            var noteStyle = {font:{bold:true,sz:11,color:{rgb:'333333'}},fill:{fgColor:{rgb:'F9F9F9'}},alignment:{horizontal:'left',vertical:'center',wrapText:true}};
+            var projStyle = {font:{bold:true,sz:12,color:{rgb:'333333'}},fill:{fgColor:{rgb:'F8F9FA'}},alignment:{horizontal:'center',vertical:'center'},border:border()};
+            var supHdrStyle = {font:{bold:true,sz:10,color:{rgb:'000000'}},fill:{fgColor:{rgb:isEstimate?'FFF3E0':'E3F2FD'}},alignment:{horizontal:'center',vertical:'center'},border:border()};
+            var cliHdrStyle = {font:{bold:true,sz:10},fill:{fgColor:{rgb:'F5F5F5'}},alignment:{horizontal:'center',vertical:'center'},border:border()};
+            var emptyBorder = {font:{sz:10},border:border()};
+
+            var supplier = {
+                name: document.getElementById('invSupplierName').value || '',
+                ceo: document.getElementById('invSupplierCeo').value || '',
+                bizNo: document.getElementById('invSupplierBizNo').value || '',
+                addr: document.getElementById('invSupplierAddr').value || '',
+                tel: document.getElementById('invSupplierTel').value || ''
+            };
+            var client = {
+                name: document.getElementById('invClientName').value || '',
+                tel: document.getElementById('invClientTel').value || '',
+                addr: document.getElementById('invClientAddr').value || ''
+            };
+
+            var ws = {};
+            var merges = [];
+            var r = 0;
+
+            // 제목
+            ws[XLSX.utils.encode_cell({r:r,c:0})] = {v:docType,t:'s',s:titleStyle};
+            merges.push({s:{r:r,c:0},e:{r:r,c:12}});
+            r += 2;
+
+            // === 공급자(A~F) / G빈칸 / 공급받는자(H~M) - 동일 6열 ===
+            // 공급자 헤더 (A~F 병합)
+            ws[XLSX.utils.encode_cell({r:r,c:0})] = {v:'공 급 자',t:'s',s:supHdrStyle};
+            for(var c=1;c<=5;c++) ws[XLSX.utils.encode_cell({r:r,c:c})] = {v:'',t:'s',s:supHdrStyle};
+            merges.push({s:{r:r,c:0},e:{r:r,c:5}});
+            // G열 빈칸
+            ws[XLSX.utils.encode_cell({r:r,c:6})] = {v:'',t:'s'};
+            // 공급받는자 헤더 (H~M 병합)
+            ws[XLSX.utils.encode_cell({r:r,c:7})] = {v:'공급받는자',t:'s',s:cliHdrStyle};
+            for(var c=8;c<=12;c++) ws[XLSX.utils.encode_cell({r:r,c:c})] = {v:'',t:'s',s:cliHdrStyle};
+            merges.push({s:{r:r,c:7},e:{r:r,c:12}});
+            r++;
+
+            var supRows = [
+                ['상 호', supplier.name],
+                ['대표자', supplier.ceo],
+                ['사업자번호', supplier.bizNo],
+                ['주 소', supplier.addr],
+                ['연락처', supplier.tel]
+            ];
+            var cliRows = [
+                ['상호(이름)', client.name],
+                ['연락처', client.tel],
+                ['주 소', client.addr],
+                ['', ''],
+                ['', '']
+            ];
+            var stampStyle = {font:{sz:10,color:{rgb:'BBBBBB'}},alignment:{horizontal:'center',vertical:'center'},border:border()};
+            for (var i=0; i<5; i++) {
+                // 공급자 라벨 A~B
+                ws[XLSX.utils.encode_cell({r:r,c:0})] = {v:supRows[i][0],t:'s',s:ilStyle};
+                ws[XLSX.utils.encode_cell({r:r,c:1})] = {v:'',t:'s',s:ilStyle};
+                merges.push({s:{r:r,c:0},e:{r:r,c:1}});
+                // 공급자 값
+                if (i === 1) {
+                    // 대표자: C~E 값 + F에 (인)
+                    ws[XLSX.utils.encode_cell({r:r,c:2})] = {v:supRows[i][1],t:'s',s:ivStyle};
+                    for(var c=3;c<=4;c++) ws[XLSX.utils.encode_cell({r:r,c:c})] = {v:'',t:'s',s:ivStyle};
+                    merges.push({s:{r:r,c:2},e:{r:r,c:4}});
+                    ws[XLSX.utils.encode_cell({r:r,c:5})] = {v:'(인)',t:'s',s:stampStyle};
+                } else {
+                    ws[XLSX.utils.encode_cell({r:r,c:2})] = {v:supRows[i][1],t:'s',s:ivStyle};
+                    for(var c=3;c<=5;c++) ws[XLSX.utils.encode_cell({r:r,c:c})] = {v:'',t:'s',s:ivStyle};
+                    merges.push({s:{r:r,c:2},e:{r:r,c:5}});
+                }
+                // G열 빈칸
+                ws[XLSX.utils.encode_cell({r:r,c:6})] = {v:'',t:'s'};
+                // 공급받는자 라벨 H~I
+                ws[XLSX.utils.encode_cell({r:r,c:7})] = {v:cliRows[i][0],t:'s',s:cliRows[i][0]?ilStyle:emptyBorder};
+                ws[XLSX.utils.encode_cell({r:r,c:8})] = {v:'',t:'s',s:cliRows[i][0]?ilStyle:emptyBorder};
+                merges.push({s:{r:r,c:7},e:{r:r,c:8}});
+                // 공급받는자 값
+                if (i === 0) {
+                    // 상호(이름): J~L 값 + M에 (인)
+                    ws[XLSX.utils.encode_cell({r:r,c:9})] = {v:cliRows[i][1],t:'s',s:ivStyle};
+                    for(var c=10;c<=11;c++) ws[XLSX.utils.encode_cell({r:r,c:c})] = {v:'',t:'s',s:ivStyle};
+                    merges.push({s:{r:r,c:9},e:{r:r,c:11}});
+                    ws[XLSX.utils.encode_cell({r:r,c:12})] = {v:'(인)',t:'s',s:stampStyle};
+                } else {
+                    ws[XLSX.utils.encode_cell({r:r,c:9})] = {v:cliRows[i][1],t:'s',s:cliRows[i][1]?ivStyle:emptyBorder};
+                    for(var c=10;c<=12;c++) ws[XLSX.utils.encode_cell({r:r,c:c})] = {v:'',t:'s',s:cliRows[i][1]?ivStyle:emptyBorder};
+                    merges.push({s:{r:r,c:9},e:{r:r,c:12}});
+                }
+                r++;
+            }
+            r++;
+
+            // "아래와 같이" 문구
+            var guideStyle = {font:{sz:10,color:{rgb:'999999'}},alignment:{horizontal:'center',vertical:'center'}};
+            ws[XLSX.utils.encode_cell({r:r,c:0})] = {v:'아래와 같이 ' + (isEstimate ? '견적' : '거래 내역을 명세') + '합니다.',t:'s',s:guideStyle};
+            for(var c=1;c<=12;c++) ws[XLSX.utils.encode_cell({r:r,c:c})] = {v:'',t:'s',s:guideStyle};
+            merges.push({s:{r:r,c:0},e:{r:r,c:12}});
+            r += 2;
+
+            // 공사명
+            if (projectTitle) {
+                ws[XLSX.utils.encode_cell({r:r,c:0})] = {v:'📌 ' + projectTitle,t:'s',s:projStyle};
+                for(var c=1;c<=12;c++) ws[XLSX.utils.encode_cell({r:r,c:c})] = {v:'',t:'s',s:projStyle};
+                merges.push({s:{r:r,c:0},e:{r:r,c:12}});
+                r += 2;
+            }
+
+            // 테이블 헤더 (2행)
+            var h1 = ['No','품 목','규격','단위','수량','재료비','','노무비','','기타','','합계','비고'];
+            var h2 = ['','','','','','단가','금액','단가','금액','단가','금액','',''];
+            // rowspan 처리: No,품목,규격,단위,수량,합계,비고는 2행 병합
+            var rSpanCols = [0,1,2,3,4,11,12];
+            h1.forEach(function(h,c){ws[XLSX.utils.encode_cell({r:r,c:c})]={v:h,t:'s',s:thStyle};});
+            merges.push({s:{r:r,c:5},e:{r:r,c:6}});
+            merges.push({s:{r:r,c:7},e:{r:r,c:8}});
+            merges.push({s:{r:r,c:9},e:{r:r,c:10}});
+            r++;
+            h2.forEach(function(h,c){ws[XLSX.utils.encode_cell({r:r,c:c})]={v:h,t:'s',s:thStyle};});
+            rSpanCols.forEach(function(c){merges.push({s:{r:r-1,c:c},e:{r:r,c:c}});});
+            r++;
+
+            // 품목 데이터
+            var itemRows = document.querySelectorAll('#invoiceItemsBody .inv-edit-row');
+            var sub=0, tMat=0, tLab=0, tEtc=0, itemNo=0;
+            itemRows.forEach(function(row) {
+                if (row.dataset.section === '1') {
+                    var sName = row.querySelector('.inv-item-name')?.value || '';
+                    ws[XLSX.utils.encode_cell({r:r,c:0})] = {v:'▸ '+sName,t:'s',s:secStyle};
+                    for(var c=1;c<=12;c++) ws[XLSX.utils.encode_cell({r:r,c:c})]={v:'',t:'s',s:secStyle};
+                    merges.push({s:{r:r,c:0},e:{r:r,c:12}});
+                    r++; return;
+                }
+                var nm = row.querySelector('.inv-item-name')?.value||'';
+                if(!nm) return;
+                itemNo++;
+                var sp=row.querySelector('.inv-item-spec')?.value||'';
+                var un=row.querySelector('.inv-item-unit')?.value||'';
+                var qt=parseFloat(row.querySelector('.inv-item-qty')?.value)||0;
+                var mp=parseInt(row.querySelector('.inv-item-mat-price')?.value)||0;
+                var lp=parseInt(row.querySelector('.inv-item-lab-price')?.value)||0;
+                var ep=parseInt(row.querySelector('.inv-item-etc-price')?.value)||0;
+                var rm=row.querySelector('.inv-item-remark')?.value||'';
+                var ma=qt*mp,la=qt*lp,ea=qt*ep,rt=ma+la+ea;
+                tMat+=ma;tLab+=la;tEtc+=ea;sub+=rt;
+
+                ws[XLSX.utils.encode_cell({r:r,c:0})]={v:itemNo,t:'n',s:cStyle};
+                ws[XLSX.utils.encode_cell({r:r,c:1})]={v:nm,t:'s',s:clStyle};
+                ws[XLSX.utils.encode_cell({r:r,c:2})]={v:sp,t:'s',s:cStyle};
+                ws[XLSX.utils.encode_cell({r:r,c:3})]={v:un,t:'s',s:cStyle};
+                ws[XLSX.utils.encode_cell({r:r,c:4})]={v:qt,t:'n',s:cStyle};
+                ws[XLSX.utils.encode_cell({r:r,c:5})]={v:mp||'',t:mp?'n':'s',s:mp?nStyle:cStyle};
+                ws[XLSX.utils.encode_cell({r:r,c:6})]={v:ma||'',t:ma?'n':'s',s:ma?nStyle:cStyle};
+                ws[XLSX.utils.encode_cell({r:r,c:7})]={v:lp||'',t:lp?'n':'s',s:lp?nStyle:cStyle};
+                ws[XLSX.utils.encode_cell({r:r,c:8})]={v:la||'',t:la?'n':'s',s:la?nStyle:cStyle};
+                ws[XLSX.utils.encode_cell({r:r,c:9})]={v:ep||'',t:ep?'n':'s',s:ep?nStyle:cStyle};
+                ws[XLSX.utils.encode_cell({r:r,c:10})]={v:ea||'',t:ea?'n':'s',s:ea?nStyle:cStyle};
+                ws[XLSX.utils.encode_cell({r:r,c:11})]={v:rt||'',t:rt?'n':'s',s:rt?nStyle:cStyle};
+                ws[XLSX.utils.encode_cell({r:r,c:12})]={v:rm,t:'s',s:cStyle};
+                r++;
+            });
+
+            // 소계
+            function footRow(label, val, style1, style2) {
+                for(var c=0;c<5;c++) ws[XLSX.utils.encode_cell({r:r,c:c})]={v:c===0?label:'',t:'s',s:style1};
+                merges.push({s:{r:r,c:0},e:{r:r,c:4}});
+                for(var c=5;c<11;c++) ws[XLSX.utils.encode_cell({r:r,c:c})]={v:'',t:'s',s:style1};
+                ws[XLSX.utils.encode_cell({r:r,c:11})]={v:val,t:'n',s:style2};
+                ws[XLSX.utils.encode_cell({r:r,c:12})]={v:'',t:'s',s:style1};
+                r++;
+            }
+            // 소계 - 개별 합계도 표시
+            for(var c=0;c<5;c++) ws[XLSX.utils.encode_cell({r:r,c:c})]={v:c===0?'소 계':'',t:'s',s:flStyle};
+            merges.push({s:{r:r,c:0},e:{r:r,c:4}});
+            ws[XLSX.utils.encode_cell({r:r,c:5})]={v:'',t:'s',s:flStyle};
+            ws[XLSX.utils.encode_cell({r:r,c:6})]={v:tMat||'',t:tMat?'n':'s',s:tMat?fnStyle:flStyle};
+            ws[XLSX.utils.encode_cell({r:r,c:7})]={v:'',t:'s',s:flStyle};
+            ws[XLSX.utils.encode_cell({r:r,c:8})]={v:tLab||'',t:tLab?'n':'s',s:tLab?fnStyle:flStyle};
+            ws[XLSX.utils.encode_cell({r:r,c:9})]={v:'',t:'s',s:flStyle};
+            ws[XLSX.utils.encode_cell({r:r,c:10})]={v:tEtc||'',t:tEtc?'n':'s',s:tEtc?fnStyle:flStyle};
+            ws[XLSX.utils.encode_cell({r:r,c:11})]={v:sub,t:'n',s:fnStyle};
+            ws[XLSX.utils.encode_cell({r:r,c:12})]={v:'',t:'s',s:flStyle};
+            r++;
+
+            var expR=(function(){var v=parseFloat(document.getElementById('invExpenseRate')?.value);return isNaN(v)?10:v;})();
+            var expA=Math.round(sub*expR/100);
+            footRow('경비 ('+expR+'%)', expA, flStyle, fnStyle);
+
+            var grand=sub+expA;
+            var incVat=document.getElementById('invIncludeVat').checked;
+            if(incVat){
+                var vat=Math.round(grand*0.1);
+                footRow('부가세 (10%)', vat, flStyle, fnStyle);
+                grand+=vat;
+            }
+            footRow('합 계', grand, tlStyle, tnStyle);
+            r++;
+
+            // 비고
+            var notes=document.getElementById('invNotes').value||'';
+            if(notes){
+                ws[XLSX.utils.encode_cell({r:r,c:0})]={v:'비고: '+notes,t:'s',s:noteStyle};
+                for(var c=1;c<=12;c++) ws[XLSX.utils.encode_cell({r:r,c:c})]={v:'',t:'s',s:noteStyle};
+                merges.push({s:{r:r,c:0},e:{r:r,c:12}});
+                r++;
+            }
+
+            ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r,c:12}});
+            ws['!merges']=merges;
+            ws['!cols']=[{wch:5},{wch:22},{wch:10},{wch:6},{wch:6},{wch:12},{wch:14},{wch:12},{wch:14},{wch:12},{wch:14},{wch:16},{wch:12}];
+
+            var wb=XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb,ws,docType);
+            XLSX.writeFile(wb, docType+'_'+clientName+'_'+today+'.xlsx');
+        });
+    }
+
     // 인쇄
     const printInvoiceBtn = document.getElementById('printInvoiceBtn');
     if (printInvoiceBtn) {
