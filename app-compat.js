@@ -2675,7 +2675,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const itemsHtml = items.map(item => {
             if (item.isSection) {
-                return `<tr style="background:#e8eaf6;"><td colspan="13" style="text-align:left;font-weight:bold;font-size:14px;color:#1a237e;padding:8px 10px;">▸ ${item.name}</td></tr>`;
+                return `<tr style="background:#e8eaf6;"><td colspan="13" style="text-align:left;font-weight:bold;font-size:18px;color:#1a237e;padding:10px 12px;">▸ ${item.name}</td></tr>`;
             }
             return `<tr>
                 <td>${item.no}</td>
@@ -2946,7 +2946,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 offscreen.querySelectorAll('.invoice-notes strong').forEach(function(el) { el.style.fontSize = '34px'; });
                 offscreen.querySelectorAll('.invoice-notes span').forEach(function(el) { el.style.fontSize = '34px'; });
                 offscreen.querySelectorAll('.invoice-info-table th[colspan]').forEach(function(el) {
-                    if (el.textContent.indexOf('아래와 같이') >= 0) el.style.fontSize = '24px';
+                    if (el.textContent.indexOf('아래와 같이') >= 0) el.style.fontSize = '32px';
+                });
+                offscreen.querySelectorAll('.invoice-items-table tfoot td').forEach(function(el) {
+                    el.style.fontSize = '30px';
+                });
+                offscreen.querySelectorAll('.invoice-total-row').forEach(function(el) {
+                    el.style.fontSize = '44px';
+                });
+                // 제목행(▸) 폰트 확대
+                offscreen.querySelectorAll('.invoice-items-table tbody tr').forEach(function(tr) {
+                    var td = tr.querySelector('td[colspan]');
+                    if (td && td.textContent.indexOf('▸') >= 0) {
+                        td.style.fontSize = '32px';
+                        td.style.padding = '16px 20px';
+                    }
                 });
 
                 // 테이블 실제 크기 측정 후 캡처
