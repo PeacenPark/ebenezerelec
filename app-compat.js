@@ -2675,7 +2675,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const itemsHtml = items.map(item => {
             if (item.isSection) {
-                return `<tr style="background:#e8eaf6;"><td colspan="13" style="text-align:left;font-weight:bold;font-size:28px;color:#1a237e;padding:14px 16px;">▸ ${item.name}</td></tr>`;
+                return `<tr style="background:#e8eaf6;"><td colspan="13" style="text-align:left;font-weight:bold;font-size:14px;color:#1a237e;padding:8px 10px;">▸ ${item.name}</td></tr>`;
             }
             return `<tr>
                 <td>${item.no}</td>
@@ -2717,7 +2717,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td></td>
                </tr>
                <tr style="background:#e8eaf6;">
-                <td colspan="5" style="text-align:center;font-weight:bold;font-size:28px;">합 계</td>
+                <td colspan="5" style="text-align:center;font-weight:bold;font-size:14px;">합 계</td>
                 <td colspan="6"></td>
                 <td style="font-size:30px;font-weight:bold;">₩ ${finalTotal.toLocaleString()}</td>
                 <td></td>
@@ -2737,9 +2737,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td></td>
                </tr>
                <tr style="background:#e8eaf6;">
-                <td colspan="5" style="text-align:center;font-weight:bold;font-size:28px;">합 계</td>
+                <td colspan="5" style="text-align:center;font-weight:bold;font-size:14px;">합 계</td>
                 <td colspan="6"></td>
-                <td style="font-size:28px;font-weight:bold;">₩ ${grandTotal.toLocaleString()}</td>
+                <td style="font-size:15px;font-weight:bold;">₩ ${grandTotal.toLocaleString()}</td>
                 <td></td>
                </tr>`;
 
@@ -2774,12 +2774,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             <tr><th>상호(이름)</th><td style="position:relative;">${client.name}<span style="position:absolute;right:20px;top:50%;transform:translateY(-50%);color:#ccc;">(인)</span></td></tr>
                             <tr><th>연락처</th><td>${client.tel}</td></tr>
                             <tr><th>주 소</th><td>${client.addr}</td></tr>
-                            <tr><th colspan="2" style="text-align:center;padding:10px;font-size:22px;color:#999;">아래와 같이 ${isEstimate ? '견적' : '거래 내역을 명세'}합니다.</th></tr>
+                            <tr><th colspan="2" style="text-align:center;padding:10px;font-size:12px;color:#999;">아래와 같이 ${isEstimate ? '견적' : '거래 내역을 명세'}합니다.</th></tr>
                         </table>
                     </div>
                 </div>
 
-                ${projectTitle ? `<div style="text-align:center;margin-bottom:15px;padding:10px;background:#f8f9fa;border:1px solid #ddd;border-radius:4px;font-size:32px;font-weight:700;color:#333;">📌 ${projectTitle}</div>` : ''}
+                ${projectTitle ? `<div style="text-align:center;margin-bottom:15px;padding:10px;background:#f8f9fa;border:1px solid #ddd;border-radius:4px;font-size:16px;font-weight:700;color:#333;">📌 ${projectTitle}</div>` : ''}
 
                 <table class="invoice-items-table ${typeCls}">
                     <thead>
@@ -2807,7 +2807,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 <div class="invoice-total-row">${totalRowHtml}</div>
 
-                ${notes ? `<div class="invoice-notes"><strong style="font-size:34px;">비고</strong><br><span style="font-size:34px;font-weight:700;color:#333;">${notes.replace(/\n/g, '<br>')}</span></div>` : ''}
+                ${notes ? `<div class="invoice-notes"><strong style="font-size:17px;">비고</strong><br><span style="font-size:17px;font-weight:700;color:#333;">${notes.replace(/\n/g, '<br>')}</span></div>` : ''}
             </div>
         `;
 
@@ -2818,29 +2818,7 @@ document.addEventListener('DOMContentLoaded', function() {
         invoicePreviewModal.classList.add('show');
         document.body.style.overflow = 'hidden';
 
-        // 모바일에서 PC와 동일한 레이아웃으로 축소 표시 (모달 열린 후 실행)
-        if (window.innerWidth < 768) {
-            setTimeout(() => {
-                const previewArea = document.getElementById('invoicePreviewArea');
-                const docEl = document.getElementById('invoiceDocContent');
-                if (docEl && previewArea) {
-                    const areaWidth = previewArea.clientWidth;
-                    const docWidth = 1100;
-                    const scale = Math.min(1, areaWidth / docWidth);
-                    docEl.style.width = docWidth + 'px';
-                    docEl.style.minWidth = docWidth + 'px';
-                    docEl.style.transform = `scale(${scale})`;
-                    docEl.style.transformOrigin = 'top left';
-                    // 래퍼로 실제 차지 영역을 축소 크기에 맞춤
-                    const wrapper = document.createElement('div');
-                    wrapper.style.width = (docWidth * scale) + 'px';
-                    wrapper.style.height = (docEl.offsetHeight * scale) + 'px';
-                    wrapper.style.overflow = 'hidden';
-                    docEl.parentNode.insertBefore(wrapper, docEl);
-                    wrapper.appendChild(docEl);
-                }
-            }, 50);
-        }
+        // 모바일/PC 모두 가로 스크롤로 전체 내용 확인 가능
     }
 
     function closeInvoicePreviewModal() {
@@ -2963,6 +2941,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     .invoice-stamp-area img { width:100px;height:auto;opacity:1; }
                 `;
                 offscreen.appendChild(style);
+
+                // 이미지용 인라인 폰트 강제 확대
+                offscreen.querySelectorAll('.invoice-notes strong').forEach(function(el) { el.style.fontSize = '34px'; });
+                offscreen.querySelectorAll('.invoice-notes span').forEach(function(el) { el.style.fontSize = '34px'; });
+                offscreen.querySelectorAll('.invoice-info-table th[colspan]').forEach(function(el) {
+                    if (el.textContent.indexOf('아래와 같이') >= 0) el.style.fontSize = '24px';
+                });
 
                 // 테이블 실제 크기 측정 후 캡처
                 const captureTarget = docEl || offscreen;
