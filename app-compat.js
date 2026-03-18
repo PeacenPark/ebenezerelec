@@ -2675,7 +2675,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const itemsHtml = items.map(item => {
             if (item.isSection) {
-                return `<tr style="background:#e8eaf6;"><td colspan="13" style="text-align:left;font-weight:bold;font-size:14px;color:#1a237e;padding:8px 10px;">▸ ${item.name}</td></tr>`;
+                return `<tr style="background:#e8eaf6;"><td colspan="13" style="text-align:left;font-weight:bold;font-size:28px;color:#1a237e;padding:14px 16px;">▸ ${item.name}</td></tr>`;
             }
             return `<tr>
                 <td>${item.no}</td>
@@ -2717,9 +2717,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td></td>
                </tr>
                <tr style="background:#e8eaf6;">
-                <td colspan="5" style="text-align:center;font-weight:bold;font-size:14px;">합 계</td>
+                <td colspan="5" style="text-align:center;font-weight:bold;font-size:28px;">합 계</td>
                 <td colspan="6"></td>
-                <td style="font-size:15px;font-weight:bold;">₩ ${finalTotal.toLocaleString()}</td>
+                <td style="font-size:30px;font-weight:bold;">₩ ${finalTotal.toLocaleString()}</td>
                 <td></td>
                </tr>`
             : `<tr style="background:#f0f0f0;">
@@ -2737,9 +2737,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td></td>
                </tr>
                <tr style="background:#e8eaf6;">
-                <td colspan="5" style="text-align:center;font-weight:bold;font-size:14px;">합 계</td>
+                <td colspan="5" style="text-align:center;font-weight:bold;font-size:28px;">합 계</td>
                 <td colspan="6"></td>
-                <td style="font-size:14px;font-weight:bold;">₩ ${grandTotal.toLocaleString()}</td>
+                <td style="font-size:28px;font-weight:bold;">₩ ${grandTotal.toLocaleString()}</td>
                 <td></td>
                </tr>`;
 
@@ -2774,12 +2774,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             <tr><th>상호(이름)</th><td style="position:relative;">${client.name}<span style="position:absolute;right:20px;top:50%;transform:translateY(-50%);color:#ccc;">(인)</span></td></tr>
                             <tr><th>연락처</th><td>${client.tel}</td></tr>
                             <tr><th>주 소</th><td>${client.addr}</td></tr>
-                            <tr><th colspan="2" style="text-align:center;padding:10px;font-size:11px;color:#999;">아래와 같이 ${isEstimate ? '견적' : '거래 내역을 명세'}합니다.</th></tr>
+                            <tr><th colspan="2" style="text-align:center;padding:10px;font-size:22px;color:#999;">아래와 같이 ${isEstimate ? '견적' : '거래 내역을 명세'}합니다.</th></tr>
                         </table>
                     </div>
                 </div>
 
-                ${projectTitle ? `<div style="text-align:center;margin-bottom:15px;padding:10px;background:#f8f9fa;border:1px solid #ddd;border-radius:4px;font-size:16px;font-weight:700;color:#333;">📌 ${projectTitle}</div>` : ''}
+                ${projectTitle ? `<div style="text-align:center;margin-bottom:15px;padding:10px;background:#f8f9fa;border:1px solid #ddd;border-radius:4px;font-size:32px;font-weight:700;color:#333;">📌 ${projectTitle}</div>` : ''}
 
                 <table class="invoice-items-table ${typeCls}">
                     <thead>
@@ -2807,7 +2807,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 <div class="invoice-total-row">${totalRowHtml}</div>
 
-                ${notes ? `<div class="invoice-notes"><strong style="font-size:17px;">비고</strong><br><span style="font-size:17px;font-weight:700;color:#333;">${notes.replace(/\n/g, '<br>')}</span></div>` : ''}
+                ${notes ? `<div class="invoice-notes"><strong style="font-size:34px;">비고</strong><br><span style="font-size:34px;font-weight:700;color:#333;">${notes.replace(/\n/g, '<br>')}</span></div>` : ''}
             </div>
         `;
 
@@ -2884,27 +2884,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function getInvoicePrintCSS() {
         return `
-            .invoice-doc { max-width:100%; padding:25px 30px; box-sizing:border-box; }
-            .invoice-doc-title { text-align:center; font-size:34px; font-weight:bold; letter-spacing:10px; padding-bottom:0; border-bottom:none; margin-bottom:0; }
+            .invoice-doc { max-width:100%; padding:40px 50px; box-sizing:border-box; }
+            .invoice-doc-title { text-align:center; font-size:68px; font-weight:bold; letter-spacing:16px; padding-bottom:0; border-bottom:none; margin-bottom:0; }
             .invoice-doc-title.estimate { color:#e65100; }
             .invoice-doc-title.statement { color:#1565C0; }
-            .invoice-doc-no { font-size:15px; color:#555; margin-bottom:15px; }
-            .invoice-info-table { width:100%; border-collapse:collapse; font-size:16px; }
-            .invoice-info-table th { background:#f5f5f5; padding:10px 12px; text-align:left; font-weight:600; border:1px solid #ddd; width:90px; min-width:90px; max-width:90px; white-space:nowrap; }
-            .invoice-info-table td { padding:10px 12px; border:1px solid #ddd; word-break:break-all; }
-            .invoice-items-table { width:100%; table-layout:auto; border-collapse:collapse; font-size:15px; white-space:nowrap; }
-            .invoice-items-table thead th { background:#37474f; color:white; padding:10px 6px; text-align:center; border:2px solid #fff; font-size:13px; word-break:keep-all; }
+            .invoice-doc-no { font-size:30px; color:#555; margin-bottom:25px; }
+            .invoice-info-table { width:100%; border-collapse:collapse; font-size:32px; }
+            .invoice-info-table th { background:#f5f5f5; padding:16px 20px; text-align:left; font-weight:600; border:1px solid #ddd; width:180px; min-width:180px; max-width:180px; white-space:nowrap; }
+            .invoice-info-table td { padding:16px 20px; border:1px solid #ddd; word-break:break-all; }
+            .invoice-items-table { width:100%; table-layout:auto; border-collapse:collapse; font-size:30px; white-space:nowrap; }
+            .invoice-items-table thead th { background:#37474f; color:white; padding:16px 10px; text-align:center; border:2px solid #fff; font-size:26px; word-break:keep-all; }
             .invoice-items-table.estimate thead th { background:#e65100; }
             .invoice-items-table.statement thead th { background:#1565C0; }
-            .invoice-items-table tbody td { padding:10px 6px; border:1px solid #ddd; text-align:center; font-size:15px; white-space:nowrap; }
+            .invoice-items-table tbody td { padding:16px 10px; border:1px solid #ddd; text-align:center; font-size:30px; white-space:nowrap; }
             .invoice-items-table tbody td:nth-child(2) { text-align:left; white-space:normal; word-break:keep-all; }
-            .invoice-items-table tfoot td { padding:12px 6px; border:1px solid #ddd; font-weight:bold; text-align:center; background:#fafafa; font-size:15px; white-space:nowrap; }
-            .invoice-total-row { font-size:22px; text-align:center; padding:18px 0; font-weight:bold; border-top:3px solid #333; border-bottom:3px solid #333; margin-bottom:20px; }
-            .invoice-notes { background:#f9f9f9; padding:18px; border-radius:5px; font-size:17px; color:#333; line-height:1.8; white-space:pre-wrap; margin-bottom:20px; font-weight:600; }
-            .invoice-footer { display:flex; justify-content:space-between; margin-top:30px; font-size:15px; }
-            .invoice-stamp-area { text-align:center; width:180px; }
-            .invoice-stamp-area img { width:100px; height:auto; margin-bottom:5px; }
-            .invoice-stamp-area .stamp-label { padding-top:8px; border-top:1px solid #333; font-weight:600; }
+            .invoice-items-table tfoot td { padding:18px 10px; border:1px solid #ddd; font-weight:bold; text-align:center; background:#fafafa; font-size:30px; white-space:nowrap; }
+            .invoice-total-row { font-size:44px; text-align:center; padding:30px 0; font-weight:bold; border-top:4px solid #333; border-bottom:4px solid #333; margin-bottom:30px; }
+            .invoice-notes { background:#f9f9f9; padding:30px; border-radius:8px; font-size:34px; color:#333; line-height:1.8; white-space:pre-wrap; margin-bottom:30px; font-weight:600; }
+            .invoice-footer { display:flex; justify-content:space-between; margin-top:40px; font-size:30px; }
+            .invoice-stamp-area { text-align:center; width:300px; }
+            .invoice-stamp-area img { width:180px; height:auto; margin-bottom:8px; }
+            .invoice-stamp-area .stamp-label { padding-top:12px; border-top:2px solid #333; font-weight:600; }
         `;
     }
 
@@ -2922,7 +2922,6 @@ document.addEventListener('DOMContentLoaded', function() {
             saveInvoiceImgBtn.textContent = '⏳ 생성중...';
 
             try {
-                const renderW = 1200;
                 const PAD = 80;
 
                 const offscreen = document.createElement('div');
@@ -2934,8 +2933,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const docEl = offscreen.querySelector('.invoice-doc');
                 if (docEl) {
                     docEl.style.cssText = '';
-                    docEl.style.width = renderW + 'px';
-                    docEl.style.maxWidth = renderW + 'px';
+                    docEl.style.width = 'auto';
+                    docEl.style.maxWidth = 'none';
+                    docEl.style.minWidth = '1200px';
+                    docEl.style.display = 'inline-block';
                     docEl.style.background = 'white';
                     docEl.style.padding = '30px 35px';
                     docEl.style.fontFamily = "'Malgun Gothic','맑은 고딕',sans-serif";
@@ -2954,21 +2955,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 style.textContent = getInvoicePrintCSS() + `
                     .invoice-doc * { box-sizing:border-box; }
                     .invoice-info-table { table-layout:auto; width:100%; }
-                    .invoice-info-table th { width:90px !important; min-width:90px; max-width:90px; white-space:nowrap; font-size:15px; padding:10px 12px; }
-                    .invoice-info-table td { width:auto; font-size:15px; padding:10px 12px; word-break:break-all; }
+                    .invoice-info-table th { width:160px !important; min-width:160px; max-width:160px; white-space:nowrap; }
+                    .invoice-info-table td { width:auto; word-break:break-all; }
                     .invoice-items-table { table-layout:auto; width:100%; white-space:nowrap; }
-                    .invoice-items-table thead th { font-size:13px; padding:10px 6px; word-break:keep-all; }
-                    .invoice-items-table tbody td { font-size:14px; padding:10px 6px; white-space:nowrap; }
                     .invoice-items-table tbody td:nth-child(2) { white-space:normal; word-break:keep-all; }
-                    .invoice-items-table tfoot td { font-size:14px; padding:12px 6px; white-space:nowrap; }
                     .invoice-stamp-area { position:relative; }
                     .invoice-stamp-area img { width:100px;height:auto;opacity:1; }
                 `;
                 offscreen.appendChild(style);
 
+                // 테이블 실제 크기 측정 후 캡처
                 const captureTarget = docEl || offscreen;
+                const actualW = captureTarget.scrollWidth;
+                const actualH = captureTarget.scrollHeight;
+
                 const canvas = await html2canvas(captureTarget, {
                     scale: 3,
+                    width: actualW,
+                    height: actualH,
                     useCORS: true,
                     backgroundColor: '#ffffff'
                 });
