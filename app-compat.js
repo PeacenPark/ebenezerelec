@@ -1026,229 +1026,221 @@ document.addEventListener('DOMContentLoaded', function() {
     
     
     // 엑셀 저장
-    const exportExcelBtn = document.getElementById('exportExcelBtn');
-    if (exportExcelBtn) {
-        exportExcelBtn.addEventListener('click', function() {
-            const data = currentDisplayedTransactions;
-            if (!data || data.length === 0) {
-                alert('저장할 거래 내역이 없습니다.');
-                return;
-            }
+    // 거래 내역 엑셀 내보내기 함수
+    function exportTransactionExcel() {
+        if (typeof XLSX === 'undefined') { alert('엑셀 라이브러리를 불러올 수 없습니다.'); return; }
+        var data = currentDisplayedTransactions;
+        if (!data || data.length === 0) { alert('저장할 거래 내역이 없습니다.'); return; }
 
-            const rows = data.map(t => ({
-                '거래일': t.date,
-                '정산일': t.paidDate || '',
-                '결제상태': t.paymentStatus === 'unpaid' ? '미수금' : '정산완료',
-                '결제방식': t.paymentMethod || '',
-                '고객명': t.customerName,
-                '연락처': t.phone,
-                '지역': t.location,
-                '서비스': t.serviceType,
-                '유입경로': t.referralSource || '',
-                '총비용': t.totalCost || 0,
-                '투입자재비': t.materialCost || 0,
-                '인건비': t.laborCost || 0,
-                '작업수익': t.profit || 0,
-                '작업내용': t.content || ''
-            }));
+        var rows = data.map(function(t) { return {
+            '거래일': t.date, '정산일': t.paidDate || '',
+            '결제상태': t.paymentStatus === 'unpaid' ? '미수금' : '정산완료',
+            '결제방식': t.paymentMethod || '', '고객명': t.customerName,
+            '연락처': t.phone, '지역': t.location, '서비스': t.serviceType,
+            '유입경로': t.referralSource || '', '총비용': t.totalCost || 0,
+            '투입자재비': t.materialCost || 0, '인건비': t.laborCost || 0,
+            '작업수익': t.profit || 0, '작업내용': t.content || ''
+        };});
 
-            // 합계행
-            const sumTotal = data.reduce((s, t) => s + (t.totalCost || 0), 0);
-            const sumMaterial = data.reduce((s, t) => s + (t.materialCost || 0), 0);
-            const sumLabor = data.reduce((s, t) => s + (t.laborCost || 0), 0);
-            const sumProfit = data.reduce((s, t) => s + (t.profit || 0), 0);
+        var sumTotal = data.reduce(function(s,t){return s+(t.totalCost||0);},0);
+        var sumMaterial = data.reduce(function(s,t){return s+(t.materialCost||0);},0);
+        var sumLabor = data.reduce(function(s,t){return s+(t.laborCost||0);},0);
+        var sumProfit = data.reduce(function(s,t){return s+(t.profit||0);},0);
+        var mf = document.getElementById('monthFilter');
+        var selM = mf ? mf.value : '';
+        var expSum = 0;
+        allExpenses.forEach(function(e) {
+            if (!e.date) return;
+            if (selM && !e.date.startsWith(selM)) return;
+            expSum += e.amount || 0;
+        });
+        var netP = sumTotal - sumLabor - expSum;
 
-            // 해당 기간 운영비
-            const mf = document.getElementById('monthFilter');
-            const selM = mf ? mf.value : '';
-            let expSum = 0;
-            allExpenses.forEach(function(e) {
-                if (!e.date) return;
-                if (selM && !e.date.startsWith(selM)) return;
-                expSum += e.amount || 0;
-            });
-            const netP = sumTotal - sumLabor - expSum;
+        rows.push({'거래일':'','정산일':'','결제상태':'','결제방식':'','고객명':'','연락처':'','지역':'','서비스':'','유입경로':'합계','총비용':sumTotal,'투입자재비':sumMaterial,'인건비':sumLabor,'작업수익':sumProfit,'작업내용':''});
+        rows.push({'거래일':'','정산일':'','결제상태':'','결제방식':'','고객명':'','연락처':'','지역':'','서비스':'','유입경로':'운영비','총비용':-expSum,'투입자재비':'','인건비':'','작업수익':'','작업내용':'자재구매 포함'});
+        rows.push({'거래일':'','정산일':'','결제상태':'','결제방식':'','고객명':'','연락처':'','지역':'','서비스':'','유입경로':'실수익','총비용':netP,'투입자재비':'','인건비':'','작업수익':'','작업내용':'총매출-인부비용-운영비'});
 
-            rows.push({
-                '거래일': '', '정산일': '', '결제상태': '', '결제방식': '',
-                '고객명': '', '연락처': '', '지역': '', '서비스': '',
-                '유입경로': '합계',
-                '총비용': sumTotal, '투입자재비': sumMaterial, '인건비': sumLabor,
-                '작업수익': sumProfit, '작업내용': ''
-            });
-            rows.push({
-                '거래일': '', '정산일': '', '결제상태': '', '결제방식': '',
-                '고객명': '', '연락처': '', '지역': '', '서비스': '',
-                '유입경로': '운영비',
-                '총비용': -expSum, '투입자재비': '', '인건비': '',
-                '작업수익': '', '작업내용': '자재구매 포함'
-            });
-            rows.push({
-                '거래일': '', '정산일': '', '결제상태': '', '결제방식': '',
-                '고객명': '', '연락처': '', '지역': '', '서비스': '',
-                '유입경로': '실수익',
-                '총비용': netP, '투입자재비': '', '인건비': '',
-                '작업수익': '', '작업내용': '총매출-인부비용-운영비'
-            });
+        var ws = XLSX.utils.json_to_sheet(rows);
+        ws['!cols'] = [{wch:12},{wch:12},{wch:10},{wch:12},{wch:12},{wch:15},{wch:10},{wch:14},{wch:10},{wch:12},{wch:12},{wch:12},{wch:12},{wch:40}];
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, '거래내역');
+        var today = new Date();
+        XLSX.writeFile(wb, '거래내역_'+today.getFullYear()+String(today.getMonth()+1).padStart(2,'0')+String(today.getDate()).padStart(2,'0')+'.xlsx');
+    }
 
-            const ws = XLSX.utils.json_to_sheet(rows);
+    // 거래 내역 미리보기 HTML 생성 함수
+    function generateTransactionPreviewHTML() {
+        var data = currentDisplayedTransactions;
+        if (!data || data.length === 0) return null;
 
-            // 열 너비 설정
-            ws['!cols'] = [
-                {wch:12},{wch:12},{wch:10},{wch:12},{wch:12},{wch:15},
-                {wch:10},{wch:14},{wch:10},{wch:12},{wch:12},
-                {wch:12},{wch:12},{wch:40}
-            ];
+        var sumTotal = data.reduce(function(s,t){return s+(t.totalCost||0);},0);
+        var sumMaterial = data.reduce(function(s,t){return s+(t.materialCost||0);},0);
+        var sumLabor = data.reduce(function(s,t){return s+(t.laborCost||0);},0);
+        var sumProfit = data.reduce(function(s,t){return s+(t.profit||0);},0);
 
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, '거래내역');
+        var mf = document.getElementById('monthFilter');
+        var selM = mf ? mf.value : '';
+        var sumExpense = 0;
+        allExpenses.forEach(function(e) {
+            if (!e.date) return;
+            if (selM && !e.date.startsWith(selM)) return;
+            sumExpense += e.amount || 0;
+        });
+        var netProfit = sumTotal - sumLabor - sumExpense;
 
-            const today = new Date();
-            const fileName = `거래내역_${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}.xlsx`;
-            XLSX.writeFile(wb, fileName);
+        var today = new Date();
+        var dateStr = today.getFullYear()+'.'+String(today.getMonth()+1).padStart(2,'0')+'.'+String(today.getDate()).padStart(2,'0');
+
+        var monthFilterEl = document.getElementById('monthFilter');
+        var selectedMonth = monthFilterEl ? monthFilterEl.value : '';
+        var activeBtn = document.querySelector('.filter-btn.active');
+        var activeFilter = activeBtn ? activeBtn.dataset.filter : 'date';
+
+        var filterLabel = '';
+        var titleLabel = '거래 내역서';
+        if (selectedMonth) {
+            var parts = selectedMonth.split('-');
+            filterLabel = parts[0]+'년 '+parseInt(parts[1])+'월';
+        } else if (activeFilter === 'unpaid') {
+            filterLabel = '미수금'; titleLabel = '미수금 내역서';
+        } else if (activeFilter === 'paidDate') {
+            filterLabel = '정산일 전체'; titleLabel = '정산 내역서';
+        } else {
+            filterLabel = '전체';
+        }
+        if (selectedMonth && activeFilter === 'paidDate') titleLabel = '정산 내역서';
+        if (selectedMonth && activeFilter === 'unpaid') titleLabel = '미수금 내역서';
+
+        var tableRows = data.map(function(t,i) {
+            return '<tr style="border-bottom:1px solid #e0e0e0;">' +
+                '<td style="padding:10px 8px;text-align:center;font-size:13px;color:#666;">'+(i+1)+'</td>' +
+                '<td style="padding:10px 8px;font-size:13px;">'+(t.paidDate||t.date)+'</td>' +
+                '<td style="padding:10px 8px;font-size:13px;">'+t.customerName+'</td>' +
+                '<td style="padding:10px 8px;font-size:13px;">'+t.serviceType+'</td>' +
+                '<td style="padding:10px 8px;font-size:13px;text-align:center;">'+(t.paymentMethod||'-')+'</td>' +
+                '<td style="padding:10px 8px;text-align:right;font-size:13px;">₩'+formatNumber(t.totalCost||0)+'</td>' +
+                '<td style="padding:10px 8px;text-align:right;font-size:13px;">₩'+formatNumber(t.materialCost||0)+'</td>' +
+                '<td style="padding:10px 8px;text-align:right;font-size:13px;">₩'+formatNumber(t.laborCost||0)+'</td>' +
+                '<td style="padding:10px 8px;text-align:right;font-size:13px;font-weight:bold;color:#1a73e8;">₩'+formatNumber(t.profit||0)+'</td>' +
+            '</tr>';
+        }).join('');
+
+        var netColor = netProfit >= 0 ? '#4CAF50' : '#f44336';
+
+        return '<div style="background:white;padding:30px;font-family:Arial,\'Noto Sans KR\',sans-serif;">' +
+            '<div style="text-align:center;margin-bottom:25px;">' +
+                '<h2 style="margin:0 0 5px;font-size:22px;color:#333;">'+titleLabel+'</h2>' +
+                '<p style="margin:0;font-size:13px;color:#999;">에벤에셀 전기 | '+filterLabel+' 기준 | '+data.length+'건</p>' +
+            '</div>' +
+            '<table style="width:100%;border-collapse:collapse;">' +
+                '<thead><tr style="background:#f8f9fa;border-bottom:2px solid #333;">' +
+                    '<th style="padding:12px 8px;text-align:center;font-size:13px;width:40px;">No</th>' +
+                    '<th style="padding:12px 8px;text-align:left;font-size:13px;">정산일</th>' +
+                    '<th style="padding:12px 8px;text-align:left;font-size:13px;">고객명</th>' +
+                    '<th style="padding:12px 8px;text-align:left;font-size:13px;">서비스</th>' +
+                    '<th style="padding:12px 8px;text-align:center;font-size:13px;">결제</th>' +
+                    '<th style="padding:12px 8px;text-align:right;font-size:13px;">총비용</th>' +
+                    '<th style="padding:12px 8px;text-align:right;font-size:13px;">투입자재비</th>' +
+                    '<th style="padding:12px 8px;text-align:right;font-size:13px;">인건비</th>' +
+                    '<th style="padding:12px 8px;text-align:right;font-size:13px;">작업수익</th>' +
+                '</tr></thead>' +
+                '<tbody>'+tableRows+'</tbody>' +
+                '<tfoot>' +
+                    '<tr style="border-top:2px solid #333;background:#f8f9fa;">' +
+                        '<td colspan="5" style="padding:12px 8px;font-size:14px;font-weight:bold;text-align:center;">합 계</td>' +
+                        '<td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;">₩'+formatNumber(sumTotal)+'</td>' +
+                        '<td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;">₩'+formatNumber(sumMaterial)+'</td>' +
+                        '<td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;">₩'+formatNumber(sumLabor)+'</td>' +
+                        '<td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;color:#1a73e8;">₩'+formatNumber(sumProfit)+'</td>' +
+                    '</tr>' +
+                    '<tr style="background:#fff3e0;">' +
+                        '<td colspan="5" style="padding:12px 8px;font-size:14px;font-weight:bold;text-align:center;">운영비 (자재구매 포함)</td>' +
+                        '<td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;color:#f44336;">-₩'+formatNumber(sumExpense)+'</td>' +
+                        '<td colspan="3"></td>' +
+                    '</tr>' +
+                    '<tr style="background:#e8eaf6;border-top:3px solid #333;">' +
+                        '<td colspan="5" style="padding:14px 8px;font-size:16px;font-weight:bold;text-align:center;">실 수 익</td>' +
+                        '<td style="padding:14px 8px;text-align:right;font-size:16px;font-weight:bold;color:'+netColor+';">₩'+formatNumber(netProfit)+'</td>' +
+                        '<td colspan="3"></td>' +
+                    '</tr>' +
+                '</tfoot>' +
+            '</table>' +
+        '</div>';
+    }
+
+    // 미리보기 버튼
+    var previewTransactionBtn = document.getElementById('previewTransactionBtn');
+    if (previewTransactionBtn) {
+        previewTransactionBtn.addEventListener('click', function() {
+            var html = generateTransactionPreviewHTML();
+            if (!html) { alert('표시할 거래 내역이 없습니다.'); return; }
+            document.getElementById('transactionPreviewArea').innerHTML = html;
+            document.getElementById('transactionPreviewModal').style.display = 'flex';
         });
     }
 
-    // 이미지 저장
-    const exportImageBtn = document.getElementById('exportImageBtn');
-    if (exportImageBtn) {
-        exportImageBtn.addEventListener('click', async function() {
-            const data = currentDisplayedTransactions;
-            if (!data || data.length === 0) {
-                alert('저장할 거래 내역이 없습니다.');
-                return;
-            }
+    // 미리보기 모달 닫기
+    var closeTxPreviewBtn = document.getElementById('closeTransactionPreviewBtn');
+    if (closeTxPreviewBtn) closeTxPreviewBtn.addEventListener('click', function() {
+        document.getElementById('transactionPreviewModal').style.display = 'none';
+    });
+    var closeTxPreviewBtn2 = document.getElementById('closeTransactionPreviewBtn2');
+    if (closeTxPreviewBtn2) closeTxPreviewBtn2.addEventListener('click', function() {
+        document.getElementById('transactionPreviewModal').style.display = 'none';
+    });
 
-            // 합계 계산
-            const sumTotal = data.reduce((s, t) => s + (t.totalCost || 0), 0);
-            const sumMaterial = data.reduce((s, t) => s + (t.materialCost || 0), 0);
-            const sumLabor = data.reduce((s, t) => s + (t.laborCost || 0), 0);
-            const sumProfit = data.reduce((s, t) => s + (t.profit || 0), 0);
+    // 미리보기 모달 내 이미지 저장
+    var txPreviewImageBtn = document.getElementById('txPreviewImageBtn');
+    if (txPreviewImageBtn) {
+        txPreviewImageBtn.addEventListener('click', async function() {
+            var previewArea = document.getElementById('transactionPreviewArea');
+            var content = previewArea ? previewArea.querySelector('div') : null;
+            if (!content) { alert('미리보기 내용이 없습니다.'); return; }
 
-            // 해당 기간 운영비 계산
-            const monthFilterEl2 = document.getElementById('monthFilter');
-            const selectedMonth2 = monthFilterEl2 ? monthFilterEl2.value : '';
-            let sumExpense = 0;
-            allExpenses.forEach(function(e) {
-                if (!e.date) return;
-                if (selectedMonth2 && !e.date.startsWith(selectedMonth2)) return;
-                sumExpense += e.amount || 0;
-            });
-            const netProfit = sumTotal - sumLabor - sumExpense;
-
-            const today = new Date();
-            const dateStr = `${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
-
-            // 오프스크린 HTML 생성
-            // 현재 필터 기준 텍스트 생성
-            const monthFilterEl = document.getElementById('monthFilter');
-            const selectedMonth = monthFilterEl ? monthFilterEl.value : '';
-            const activeBtn = document.querySelector('.filter-btn.active');
-            const activeFilter = activeBtn ? activeBtn.dataset.filter : 'date';
-            
-            let filterLabel = '';
-            let titleLabel = '거래 내역서';
-            if (selectedMonth) {
-                const [y, m] = selectedMonth.split('-');
-                filterLabel = `${y}년 ${parseInt(m)}월`;
-            } else if (activeFilter === 'unpaid') {
-                filterLabel = '미수금';
-                titleLabel = '미수금 내역서';
-            } else if (activeFilter === 'paidDate') {
-                filterLabel = '정산일 전체';
-                titleLabel = '정산 내역서';
-            } else {
-                filterLabel = '전체';
-            }
-            if (selectedMonth && activeFilter === 'paidDate') titleLabel = '정산 내역서';
-            if (selectedMonth && activeFilter === 'unpaid') titleLabel = '미수금 내역서';
-
-            const container = document.createElement('div');
-            container.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:white;padding:40px;font-family:Arial,"Noto Sans KR",sans-serif;';
-
-            let tableRows = data.map((t, i) => `
-                <tr style="border-bottom:1px solid #e0e0e0;">
-                    <td style="padding:10px 8px;text-align:center;font-size:13px;color:#666;">${i + 1}</td>
-                    <td style="padding:10px 8px;font-size:13px;">${t.paidDate || t.date}</td>
-                    <td style="padding:10px 8px;font-size:13px;">${t.customerName}</td>
-                    <td style="padding:10px 8px;font-size:13px;">${t.serviceType}</td>
-                    <td style="padding:10px 8px;font-size:13px;text-align:center;">${t.paymentMethod || '-'}</td>
-                    <td style="padding:10px 8px;text-align:right;font-size:13px;">₩${formatNumber(t.totalCost || 0)}</td>
-                    <td style="padding:10px 8px;text-align:right;font-size:13px;">₩${formatNumber(t.materialCost || 0)}</td>
-                    <td style="padding:10px 8px;text-align:right;font-size:13px;">₩${formatNumber(t.laborCost || 0)}</td>
-                    <td style="padding:10px 8px;text-align:right;font-size:13px;font-weight:bold;color:#1a73e8;">₩${formatNumber(t.profit || 0)}</td>
-                </tr>
-            `).join('');
-
-            container.innerHTML = `
-                <div style="text-align:center;margin-bottom:25px;">
-                    <h2 style="margin:0 0 5px;font-size:22px;color:#333;">${titleLabel}</h2>
-                    <p style="margin:0;font-size:13px;color:#999;">에벤에셀 전기 | ${filterLabel} 기준 | ${data.length}건</p>
-                </div>
-                <table style="width:100%;border-collapse:collapse;">
-                    <thead>
-                        <tr style="background:#f8f9fa;border-bottom:2px solid #333;">
-                            <th style="padding:12px 8px;text-align:center;font-size:13px;width:40px;">No</th>
-                            <th style="padding:12px 8px;text-align:left;font-size:13px;">정산일</th>
-                            <th style="padding:12px 8px;text-align:left;font-size:13px;">고객명</th>
-                            <th style="padding:12px 8px;text-align:left;font-size:13px;">서비스</th>
-                            <th style="padding:12px 8px;text-align:center;font-size:13px;">결제</th>
-                            <th style="padding:12px 8px;text-align:right;font-size:13px;">총비용</th>
-                            <th style="padding:12px 8px;text-align:right;font-size:13px;">투입자재비</th>
-                            <th style="padding:12px 8px;text-align:right;font-size:13px;">인건비</th>
-                            <th style="padding:12px 8px;text-align:right;font-size:13px;">작업수익</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${tableRows}
-                    </tbody>
-                    <tfoot>
-                        <tr style="border-top:2px solid #333;background:#f8f9fa;">
-                            <td colspan="5" style="padding:12px 8px;font-size:14px;font-weight:bold;text-align:center;">합 계</td>
-                            <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;">₩${formatNumber(sumTotal)}</td>
-                            <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;">₩${formatNumber(sumMaterial)}</td>
-                            <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;">₩${formatNumber(sumLabor)}</td>
-                            <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;color:#1a73e8;">₩${formatNumber(sumProfit)}</td>
-                        </tr>
-                        <tr style="background:#fff3e0;">
-                            <td colspan="5" style="padding:12px 8px;font-size:14px;font-weight:bold;text-align:center;">운영비 (자재구매 포함)</td>
-                            <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;color:#f44336;">-₩${formatNumber(sumExpense)}</td>
-                            <td colspan="3"></td>
-                        </tr>
-                        <tr style="background:#e8eaf6;border-top:3px solid #333;">
-                            <td colspan="5" style="padding:14px 8px;font-size:16px;font-weight:bold;text-align:center;">실 수 익</td>
-                            <td style="padding:14px 8px;text-align:right;font-size:16px;font-weight:bold;color:${netProfit >= 0 ? '#4CAF50' : '#f44336'};">₩${formatNumber(netProfit)}</td>
-                            <td colspan="3"></td>
-                        </tr>
-                    </tfoot>
-                </table>
-            `;
-
-            document.body.appendChild(container);
+            txPreviewImageBtn.disabled = true;
+            txPreviewImageBtn.textContent = '⏳ 생성중...';
 
             try {
-                const canvas = await html2canvas(container, { scale: 3, backgroundColor: '#ffffff' });
+                var container = document.createElement('div');
+                container.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;background:white;padding:40px;font-family:Arial,"Noto Sans KR",sans-serif;';
+                container.innerHTML = content.innerHTML;
+                document.body.appendChild(container);
+
+                var canvas = await html2canvas(container, { scale: 3, backgroundColor: '#ffffff' });
                 document.body.removeChild(container);
 
-                const fileName = `거래내역서_${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}.png`;
+                var today = new Date();
+                var fileName = '정산내역서_' + today.getFullYear() + String(today.getMonth()+1).padStart(2,'0') + String(today.getDate()).padStart(2,'0') + '.png';
 
                 if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
                     canvas.toBlob(async function(blob) {
-                        const file = new File([blob], fileName, { type: 'image/png' });
+                        var file = new File([blob], fileName, { type: 'image/png' });
                         try { await navigator.share({ files: [file] }); } catch(e) {}
                     }, 'image/png');
                 } else {
-                    const link = document.createElement('a');
+                    var link = document.createElement('a');
                     link.download = fileName;
                     link.href = canvas.toDataURL('image/png');
                     link.click();
                 }
-            } catch (err) {
-                document.body.removeChild(container);
+            } catch(err) {
                 alert('이미지 생성 오류: ' + err.message);
+            } finally {
+                txPreviewImageBtn.disabled = false;
+                txPreviewImageBtn.textContent = '📷 이미지 저장';
             }
         });
     }
+
+    // 미리보기 모달 내 엑셀 저장
+    var txPreviewExcelBtn = document.getElementById('txPreviewExcelBtn');
+    if (txPreviewExcelBtn) {
+        txPreviewExcelBtn.addEventListener('click', function() {
+            // 기존 엑셀 내보내기 로직 호출
+            exportTransactionExcel();
+        });
+    }
+
 
     // 통계 탭 전환
     document.querySelectorAll('.stats-tab').forEach(tab => {
