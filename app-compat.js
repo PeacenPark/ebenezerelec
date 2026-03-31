@@ -1057,12 +1057,38 @@ document.addEventListener('DOMContentLoaded', function() {
             const sumMaterial = data.reduce((s, t) => s + (t.materialCost || 0), 0);
             const sumLabor = data.reduce((s, t) => s + (t.laborCost || 0), 0);
             const sumProfit = data.reduce((s, t) => s + (t.profit || 0), 0);
+
+            // 해당 기간 운영비
+            const mf = document.getElementById('monthFilter');
+            const selM = mf ? mf.value : '';
+            let expSum = 0;
+            allExpenses.forEach(function(e) {
+                if (!e.date) return;
+                if (selM && !e.date.startsWith(selM)) return;
+                expSum += e.amount || 0;
+            });
+            const netP = sumTotal - sumLabor - expSum;
+
             rows.push({
                 '거래일': '', '정산일': '', '결제상태': '', '결제방식': '',
                 '고객명': '', '연락처': '', '지역': '', '서비스': '',
                 '유입경로': '합계',
                 '총비용': sumTotal, '투입자재비': sumMaterial, '인건비': sumLabor,
                 '작업수익': sumProfit, '작업내용': ''
+            });
+            rows.push({
+                '거래일': '', '정산일': '', '결제상태': '', '결제방식': '',
+                '고객명': '', '연락처': '', '지역': '', '서비스': '',
+                '유입경로': '운영비',
+                '총비용': -expSum, '투입자재비': '', '인건비': '',
+                '작업수익': '', '작업내용': '자재구매 포함'
+            });
+            rows.push({
+                '거래일': '', '정산일': '', '결제상태': '', '결제방식': '',
+                '고객명': '', '연락처': '', '지역': '', '서비스': '',
+                '유입경로': '실수익',
+                '총비용': netP, '투입자재비': '', '인건비': '',
+                '작업수익': '', '작업내용': '총매출-인부비용-운영비'
             });
 
             const ws = XLSX.utils.json_to_sheet(rows);
@@ -1098,6 +1124,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const sumMaterial = data.reduce((s, t) => s + (t.materialCost || 0), 0);
             const sumLabor = data.reduce((s, t) => s + (t.laborCost || 0), 0);
             const sumProfit = data.reduce((s, t) => s + (t.profit || 0), 0);
+
+            // 해당 기간 운영비 계산
+            const monthFilterEl2 = document.getElementById('monthFilter');
+            const selectedMonth2 = monthFilterEl2 ? monthFilterEl2.value : '';
+            let sumExpense = 0;
+            allExpenses.forEach(function(e) {
+                if (!e.date) return;
+                if (selectedMonth2 && !e.date.startsWith(selectedMonth2)) return;
+                sumExpense += e.amount || 0;
+            });
+            const netProfit = sumTotal - sumLabor - sumExpense;
 
             const today = new Date();
             const dateStr = `${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
@@ -1172,6 +1209,16 @@ document.addEventListener('DOMContentLoaded', function() {
                             <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;">₩${formatNumber(sumMaterial)}</td>
                             <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;">₩${formatNumber(sumLabor)}</td>
                             <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;color:#1a73e8;">₩${formatNumber(sumProfit)}</td>
+                        </tr>
+                        <tr style="background:#fff3e0;">
+                            <td colspan="5" style="padding:12px 8px;font-size:14px;font-weight:bold;text-align:center;">운영비 (자재구매 포함)</td>
+                            <td style="padding:12px 8px;text-align:right;font-size:14px;font-weight:bold;color:#f44336;">-₩${formatNumber(sumExpense)}</td>
+                            <td colspan="3"></td>
+                        </tr>
+                        <tr style="background:#e8eaf6;border-top:3px solid #333;">
+                            <td colspan="5" style="padding:14px 8px;font-size:16px;font-weight:bold;text-align:center;">실 수 익</td>
+                            <td style="padding:14px 8px;text-align:right;font-size:16px;font-weight:bold;color:${netProfit >= 0 ? '#4CAF50' : '#f44336'};">₩${formatNumber(netProfit)}</td>
+                            <td colspan="3"></td>
                         </tr>
                     </tfoot>
                 </table>
