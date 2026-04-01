@@ -3247,6 +3247,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         td.style.padding = '16px 20px';
                     }
                 });
+                // 인감도장 이미지 확대 (미리보기와 동일 비율)
+                offscreen.querySelectorAll('img[alt="직인"]').forEach(function(img) {
+                    img.style.width = '70px';
+                    img.style.height = '70px';
+                });
 
                 // 테이블 실제 크기 측정 후 캡처
                 const captureTarget = docEl || offscreen;
